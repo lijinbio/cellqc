@@ -1,0 +1,11 @@
+include *.md LICENSE
+include cellqc/Snakefile
+graft cellqc/rules
+graft cellqc/schemas
+graft cellqc/scripts
+
+exclude .flake8 noxfile.py .coveragerc
+prune tests
+
+global-exclude *.py[cod]
+global-exclude __pycache__

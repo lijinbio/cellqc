@@ -1,0 +1,31 @@
+from snakemake.utils import validate, min_version
+import pandas as pd
+
+min_version("6.0")
+
+import os
+config["samples"]=os.path.join(config["configdir"], config["samples"])
+
+validate(config, schema="schemas/config.schema.yaml")
+
+samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
+validate(samples, "schemas/samples.schema.yaml")
+
+
+rule all:
+    input:
+        expand(
+            [
+                "cellqc/{sample}.h5ad",
+            ],
+            sample=samples["sample"].tolist(),
+        ),
+
+
+include: "rules/common.smk"
+include: "rules/soupx.smk"
+include: "rules/dropkick.smk"
+include: "rules/h5subset.smk"
+include: "rules/doubletfinder.smk"
+include: "rules/scpred.smk"
+include: "rules/h5seurat2h5ad.smk"
