@@ -9,10 +9,12 @@ def run(args):
 	configfile, numthreads, outdir=args.configfile.name, args.numthreads, args.outdir
 	srcdir=os.path.dirname(os.path.abspath(__file__))
 	configdir=os.path.dirname(os.path.abspath(configfile))
-	cmd=f'snakemake -j {numthreads} -s {srcdir}/Snakefile --configfile {configfile} -C configdir={configdir} -d {outdir} --report report.html'
+	cmd=f'snakemake -j {numthreads} -s {srcdir}/Snakefile --configfile {configfile} -C configdir={configdir} -d {outdir}'
+	cmdreport=cmd+" --report report.zip"
 	if args.rule is not None:
 		cmd+=f' -R {args.rule}'
 	os.system(cmd)
+	os.system(cmdreport)
 
 import argparse
 def main():

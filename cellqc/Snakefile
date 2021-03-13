@@ -4,8 +4,11 @@ import pandas as pd
 min_version("6.0")
 
 import os
-config["samples"]=os.path.join(config["configdir"], config["samples"])
 
+config["samples"] = os.path.join(config["configdir"], config["samples"])
+config["scpred"]["reference"] = os.path.join(
+    config["configdir"], config["scpred"]["reference"]
+)
 validate(config, schema="schemas/config.schema.yaml")
 
 samples = pd.read_table(config["samples"]).set_index("sample", drop=False)

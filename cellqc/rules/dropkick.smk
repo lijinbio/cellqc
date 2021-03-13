@@ -2,9 +2,21 @@ rule dropkick:
     input:
         get_rawh5,
     output:
-        "dropkick/{sample}_qc_summary.png",
-        "dropkick/{sample}_score_plot.png",
-        "dropkick/{sample}_coef_plot.png",
+        report(
+            "dropkick/{sample}_qc_summary.png",
+            caption="../report/dropkick-qc.rst",
+            category="Empty droplet removal",
+        ),
+        report(
+            "dropkick/{sample}_score_plot.png",
+            caption="../report/dropkick-score.rst",
+            category="Empty droplet removal",
+        ),
+        report(
+            "dropkick/{sample}_coef_plot.png",
+            caption="../report/dropkick-coef.rst",
+            category="Empty droplet removal",
+        ),
         "dropkick/{sample}.h5ad",
         "dropkick/{sample}_obs.txt.gz",
         "dropkick/{sample}_var.txt.gz",
