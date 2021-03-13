@@ -25,7 +25,7 @@ def main():
 Example:
   cellqc -c config.yaml
 
-Date: 2021/03/11
+Date: 2021/03/13
 Authors: Jin Li <lijin.abc@gmail.com>
 '''
 		)

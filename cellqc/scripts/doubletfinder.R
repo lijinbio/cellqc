@@ -17,7 +17,9 @@ suppressPackageStartupMessages(library(ggplot2))
 if (snakemake@params[['findpK']]) {
 	sweepx=paramSweep_v3(x, PCs=1:10, sct=F, num.cores=snakemake@params[['numthreads']])
 	sweepstats=summarizeSweep(sweepx, GT=F)
-	invisible(bcmetric=find.pK(sweepstats))
+	pdf(sprintf('%s/findpK_bcmetric_raw.pdf', outdir), width=8, height=7.5)
+	bcmetric=find.pK(sweepstats)
+	dev.off()
 	write.table(bcmetric, file=gzfile(sprintf('%s/findpK_bcmetric.txt.gz', outdir)), quote=F, sep='\t', row.names=F, col.names=T)
 	bcmetric$pK=as.numeric(levels(bcmetric$pK))[bcmetric$pK]
 
