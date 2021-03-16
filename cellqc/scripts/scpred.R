@@ -65,7 +65,6 @@ invisible(
 tmp=crossTab(x, 'seurat_clusters', 'scpred_prediction')
 write.txt(cbind(cluster=rownames(tmp), tmp) , file=sprintf('%s/contingency.txt', outdir))
 
-suppressPackageStartupMessages(library(Matrix))
-x=CreateSeuratObject(counts=Matrix(x[['RNA']]@counts, sparse=T), meta.data=x@meta.data)
+x=CreateSeuratObject(counts=x[['RNA']]@counts, meta.data=x@meta.data)
 suppressPackageStartupMessages(library(SeuratDisk))
 SaveH5Seurat(x, snakemake@output[[2]])
