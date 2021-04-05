@@ -1,18 +1,46 @@
 # cellqc: standardized quality control pipeline of single-cell RNA-Seq data
 
-Cellqc standardizes the qualiy control of single-cell RNA-Seq (scRNA) data to render clean feature count matrices from Cell Ranger outputs. Cellqc is implemented using the Snakemake workflow management system to enhance reproduciblity and scalablity of data analysis (https://snakemake.readthedocs.io). Briefly, the QC pipeline starts from raw count feature matrices from Cell Ranger. Dropkick filters out predicted empty droplets (https://github.com/KenLauLab/dropkick), and SoupX purify the transcriptome measurement by substracting the background trancripts (https://github.com/constantAmateur/SoupX). DoubletFinder further detects the potential doublets and retain clean count feature matrices for singlets (https://github.com/chris-mcginnis-ucsf/DoubletFinder). Cell types are annotated for clean cells by a reference database using scPred (https://github.com/powellgenomicslab/scPred).
+Cellqc standardizes the qualiy control of single-cell RNA-Seq (scRNA) data to render clean feature count matrices from Cell Ranger outputs. Cellqc is implemented using the Snakemake workflow management system to enhance reproduciblity and scalablity of data analysis. Briefly, the QC pipeline starts from raw count feature matrices from Cell Ranger. Dropkick filters out predicted empty droplets, and SoupX purify the transcriptome measurement by substracting the background trancripts. DoubletFinder further detects the potential doublets and retain clean count feature matrices for singlets. Cell types are annotated for clean cells by a reference database using scPred.
 
 ![workflow](https://ndownloader.figshare.com/files/26809097?private_link=8cd07dabcde5a773defd)
 
 ## Installation
 
-To install the pipeline rules globally, this package can be installed via `pip`. Namely,
+Cellqc depends a number of R and Python packages, so please install the dependencies before installing cellqc. It is encouraged to use Conda to install dependencies as much as possible. E.g.,
+
+```
+$ conda create -y -n cellqc
+$ conda activate cellqc
+$ conda config --add channels defaults --add channels bioconda --add channels conda-forge
+$ conda install -y mamba
+$ mamba install -y bioconductor-dropletutils r-seurat r-dplyr r-ggplot2 r-soupx r-remotes scanpy pygraphviz snakemake
+$ Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk', 'immunogenomics/harmony', 'powellgenomicslab/scPred'))"
+$ pip install dropkick
+```
+
+where dependent software are below.
+
+| Software | URL |
+|-------|-------|
+| DoubletFinder | https://github.com/chris-mcginnis-ucsf/DoubletFinder |
+| DropletUtils | https://bioconductor.org/packages/release/bioc/html/DropletUtils.html |
+| Seurat | https://satijalab.org/seurat |
+| SeuratDisk | https://github.com/mojaveazure/seurat-disk |
+| SoupX | https://github.com/constantAmateur/SoupX |
+| scPred | https://github.com/powellgenomicslab/scPred |
+| Snakemake | https://github.com/snakemake/snakemake |
+| Scanpy | https://scanpy.readthedocs.io/en/stable |
+| dropkick | https://github.com/KenLauLab/dropkick |
+
+After installing dependencies, to install the pipeline rules globally, this package can be installed via `pip`. Namely,
 
 ```
 $ git clone https://github.com/lijinbio/cellqc.git
 $ cd cellqc
 $ pip install .
 ```
+
+An example Bash script to wrap up above commands can be found at `dep.sh`.
 
 To test the installation, simply run
 
