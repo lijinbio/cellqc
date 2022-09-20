@@ -1,0 +1,19 @@
+# samples with Cell Ranger output directories
+samples: samples.txt
+
+## configuration for dropkick
+dropkick:
+  method: multiotsu
+  numthreads: 1
+
+## configuration for DoubletFinder
+doubletfinder:
+  findpK: false
+  numthreads: 5
+  pK: 0.005
+
+## configuration for scPred
+scpred:
+  reference: /tmp/cellqc/scPred_reference.rds
+  threshold: 0.9
+
