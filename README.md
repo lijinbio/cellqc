@@ -13,8 +13,9 @@ $ conda create -y -n cellqc
 $ conda activate cellqc
 $ conda config --add channels defaults --add channels bioconda --add channels conda-forge
 $ conda install -y mamba
-$ mamba install -y bioconductor-dropletutils r-seurat r-dplyr r-ggplot2 r-soupx r-remotes scanpy pygraphviz snakemake
+$ mamba install -y bioconductor-dropletutils r-seurat r-seuratobject r-dplyr r-ggplot2 r-soupx r-remotes scanpy pygraphviz snakemake
 $ Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk', 'immunogenomics/harmony', 'powellgenomicslab/scPred'))"
+$ mamba install -y numpy=1.21 # bug fix to install dropkick
 $ pip install dropkick
 ```
 
