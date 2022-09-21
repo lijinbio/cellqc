@@ -26,11 +26,12 @@ Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	srcdir=os.path.dirname(os.path.abspath(__file__))
 	configdir=os.path.dirname(os.path.abspath(configfile))
-	cmd=f'snakemake -j {numthreads} -s {srcdir}/Snakefile --configfile {configfile} -C configdir={configdir} -d {outdir}'
-	cmdreport=cmd+" --report report.zip"
+	cmdstr=f'snakemake -s {srcdir}/Snakefile --configfile {configfile} -C configdir={configdir} -d {outdir}'
+	cmdrun=cmdstr+f' -j {numthreads}'
+	cmdreport=cmdstr+f' --report report.html'
 	if rule is not None:
-		cmd+=f' -R {rule}'
-	os.system(cmd)
+		cmdrun+=f' -R {rule}'
+	os.system(cmdrun)
 	os.system(cmdreport)
 
 if __name__ == "__main__":
