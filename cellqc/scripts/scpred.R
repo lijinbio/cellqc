@@ -55,7 +55,7 @@ seuratdimplotgroupby(x, reduct='scpred', group='scpred_prediction', outfile=spri
 seuratdimplotgroupby(x, reduct='umap', group='scpred_prediction', outfile=sprintf('%s/predict_umap.png', outdir))
 metadata=x@meta.data
 write.txt(data.frame(barcode=rownames(metadata), metadata), file=sprintf('%s/metadata.txt.gz', outdir))
-features=c('nCount_RNA', 'nFeature_RNA', setdiff(grep('^scpred_', names(metadata), value=T), 'scpred_prediction'))
+features=c('nCount_RNA', 'nFeature_RNA', setdiff(grep('^scpred_', names(metadata), value=T), c('scpred_prediction', 'scpred_no_rejection')))
 invisible(
 	lapply(features
 		, function(feature) {
