@@ -10,5 +10,6 @@ mamba install -y bioconductor-dropletutils r-seurat r-seuratobject r-dplyr r-ggp
 Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk', 'immunogenomics/harmony', 'powellgenomicslab/scPred'))"
 Rscript -e "remotes::install_github('constantAmateur/SoupX',ref='devel')" ## debug for CellRanger v7
 mamba install -y numpy=1.21 # bug fix to install dropkick
+mamba install -y anndata=0.7.8 # Fix .h5ad version
 pip install dropkick
 pip install .
