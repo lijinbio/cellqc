@@ -13,3 +13,25 @@ sample	cellranger
 AMD1	"$outdir/cellqc_test_data/AMD1"
 AMD2	"$outdir/cellqc_test_data/AMD2"
 EOF
+AMD1	/tmp/cellqc/cellqc_test_data/AMD1
+
+cat > config.yaml <<EOF
+# samples with Cell Ranger output directories
+samples: samples.txt
+
+## configuration for dropkick
+dropkick:
+  method: multiotsu
+  numthreads: 1
+
+## configuration for DoubletFinder
+doubletfinder:
+  findpK: false
+  numthreads: 5
+  pK: 0.005
+
+## configuration for scPred
+scpred:
+  reference: "$outdir"/scPred_reference.rds
+  threshold: 0.9
+EOF
