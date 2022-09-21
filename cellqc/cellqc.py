@@ -3,39 +3,35 @@
 
 __version__ = "0.0.1"
 
-import sys
 import os
-def run(args):
-	configfile, numthreads, outdir=args.configfile.name, args.numthreads, args.outdir
+import click
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.option('-c', '--configfile', type=click.Path(exists=True), help='Configuration file in YAML format.')
+@click.option('-r', '--rule', type=click.STRING, help='Force to re-run a rule and its downstream. Available: soupx, dropkick, h5subset, doubletfinder.')
+@click.option('-d', '--outdir', type=click.Path(), default='.', help='Outdir. (default: ".")')
+@click.option('-t', '--numthreads', type=click.INT, default=4, help='Number of threads. (default: 4)')
+@click.version_option(version=__version__)
+def main():
+	"""
+cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
+
+\b
+Example:
+  cellqc -c config.yaml
+
+\b
+Date: 2022/09/21
+Authors: Jin Li <lijin.abc@gmail.com>
+	"""
 	srcdir=os.path.dirname(os.path.abspath(__file__))
 	configdir=os.path.dirname(os.path.abspath(configfile))
 	cmd=f'snakemake -j {numthreads} -s {srcdir}/Snakefile --configfile {configfile} -C configdir={configdir} -d {outdir}'
 	cmdreport=cmd+" --report report.zip"
-	if args.rule is not None:
-		cmd+=f' -R {args.rule}'
+	if rule is not None:
+		cmd+=f' -R {rule}'
 	os.system(cmd)
 	os.system(cmdreport)
-
-import argparse
-def main():
-	parser = argparse.ArgumentParser(
-		description='cellqc: standardized quality control pipeline of single-cell RNA-Seq data'
-		, formatter_class=argparse.RawDescriptionHelpFormatter
-		, epilog='''
-Example:
-  cellqc -c config.yaml
-
-Date: 2021/03/13
-Authors: Jin Li <lijin.abc@gmail.com>
-'''
-		)
-	parser.add_argument('-c', '--configfile', type=argparse.FileType('r'), required=True, help='Configuration file in YAML format.')
-	parser.add_argument('-r', '--rule', type=str, help='Force to re-run a rule and its downstream. Available: soupx, dropkick, h5subset, doubletfinder.')
-	parser.add_argument('-d', '--outdir', type=str, default='.', help='Outdir. (default: ".")')
-	parser.add_argument('-t', '--numthreads', type=int, default=4, help='Number of threads. (default: 4)')
-	parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
-	args = parser.parse_args()
-	run(args)
 
 if __name__ == "__main__":
 	main()
