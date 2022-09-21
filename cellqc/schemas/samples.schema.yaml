@@ -9,7 +9,11 @@ properties:
   cellranger:
     type: string
     description: Cell Ranger output directory of the sample. It is expected to include raw_feature_bc_matrix.h5, filtered_feature_bc_matrix.h5, and analysis.
+  nrun:
+    type: integer
+    description: Number of runs in the Cell Ranger. This value is used to estimate the doublet ratio per sample (E.g., "ncell*10%/nrun/13000").
 
 required:
   - sample
   - cellranger
+  - nrun

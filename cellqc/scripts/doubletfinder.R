@@ -2,6 +2,9 @@
 
 suppressPackageStartupMessages(library(Seurat))
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(DoubletFinder))
+suppressPackageStartupMessages(library(ggplot2))
+
 x=Read10X_h5(snakemake@input[[1]])
 x=CreateSeuratObject(counts=x)
 x=x %>% NormalizeData() %>% FindVariableFeatures(selection.method='vst', nfeatures=2000) %>% ScaleData() %>% RunPCA() %>% RunTSNE() %>% RunUMAP(dims=1:30)
@@ -10,9 +13,6 @@ outdir=snakemake@output[[1]]
 if (!dir.exists(outdir)) {
 	dir.create(outdir)
 }
-
-suppressPackageStartupMessages(library(DoubletFinder))
-suppressPackageStartupMessages(library(ggplot2))
 
 if (snakemake@params[['findpK']]) {
 	sweepx=paramSweep_v3(x, PCs=1:10, sct=F, num.cores=snakemake@params[['numthreads']])
@@ -49,13 +49,12 @@ if (snakemake@params[['findpK']]) {
 	pKopt=snakemake@params[['pK']]
 }
 
-ratio=round(nrow(x@meta.data)*0.1/13000, digits=2)
-nExp_poi=round(ratio*nrow(x@meta.data))
-cat(sprintf('%s: expected %f of %d cells is %d\n', basename(snakemake@input[[1]]), ratio, nrow(x@meta.data), nExp_poi))
+nrun=snakemake@input[[2]]
+doubletratio=round(ncol(x)*0.1/(nrun*13000), digits=2)
+nExp_poi=round(doubletratio*ncol(x))
+cat(sprintf('%s: expected %f of %d cells is %d\n', basename(snakemake@input[[1]]), doubletratio, nrow(x@meta.data), nExp_poi))
 
 res=doubletFinder_v3(x, PCs=1:10, pN=0.25, pK=pKopt, nExp=nExp_poi, reuse.pANN=F, sct=F)
-
-saveRDS(res, file=sprintf('%s/doubletfinder_pK%s.rds', outdir, pKopt))
 
 metadata=res@meta.data
 header=names(metadata)
@@ -92,7 +91,16 @@ pdf(sprintf('%s/tsne_doublet_pK%s.pdf', outdir, pKopt), width=8, height=7.5)
 print(DimPlot(res, reduction='tsne', group.by=group))
 dev.off()
 
-suppressPackageStartupMessages(library(DropletUtils))
+res$pANN=res@meta.data[, value]
+res$DF.classifications=res@meta.data[, group]
+utils::write.table(
+	data.frame(barcode=rownames(res@meta.data), res@meta.data)
+	, file=gzfile(sprintf('%s/doubletfinder_pK%s_metadata.txt.gz', outdir, pKopt))
+	, quote=F
+	, sep='\t'
+	, row.names=F
+	, col.names=T
+	)
+
 res=subset(res, cells=rownames(res@meta.data)[res@meta.data[, group]=='Singlet'])
-x=res[['RNA']]@counts
-write10xCounts(snakemake@output[[2]], x)
+saveRDS(res, file=snakemake@output[[2]])

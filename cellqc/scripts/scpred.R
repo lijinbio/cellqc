@@ -4,6 +4,7 @@ suppressPackageStartupMessages(library(Seurat))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(scPred))
+suppressPackageStartupMessages(library(SeuratDisk))
 
 seuratdimplotgroupby=function(data, reduct='umap', group='cluster', label=T, repel=T, outfile, width=6, height=5) {
 	x=Seurat::DimPlot(data, reduction=reduct, group.by=group, label=label, repel=repel)
@@ -36,8 +37,8 @@ seuratfeatureplot=function(data, features, slot='data', color=c('blue', 'white',
 	}
 }
 
-x=Read10X_h5(snakemake@input[[1]])
-x=CreateSeuratObject(counts=x)
+x=readRDS(snakemake@input[[1]])
+x=CreateSeuratObject(counts=x[['RNA']]@counts, meta.data=x@meta.data)
 x=x %>% NormalizeData() %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA() %>% RunTSNE() %>% RunUMAP(dims=1:30) %>% FindNeighbors(dims=1:30) %>% FindClusters()
 
 outdir=snakemake@output[[1]]
@@ -53,6 +54,7 @@ ref=readRDS(snakemake@params[['ref']])
 x=scPredict(x, ref, threshold=snakemake@params[['threshold']])
 seuratdimplotgroupby(x, reduct='scpred', group='scpred_prediction', outfile=sprintf('%s/predict_scpred.png', outdir))
 seuratdimplotgroupby(x, reduct='umap', group='scpred_prediction', outfile=sprintf('%s/predict_umap.png', outdir))
+
 metadata=x@meta.data
 write.txt(data.frame(barcode=rownames(metadata), metadata), file=sprintf('%s/metadata.txt.gz', outdir))
 features=c('nCount_RNA', 'nFeature_RNA', setdiff(grep('^scpred_', names(metadata), value=T), c('scpred_prediction', 'scpred_no_rejection')))
@@ -66,5 +68,4 @@ tmp=crossTab(x, 'seurat_clusters', 'scpred_prediction')
 write.txt(cbind(cluster=rownames(tmp), tmp) , file=sprintf('%s/contingency.txt', outdir))
 
 x=CreateSeuratObject(counts=x[['RNA']]@counts, meta.data=x@meta.data)
-suppressPackageStartupMessages(library(SeuratDisk))
 SaveH5Seurat(x, snakemake@output[[2]])

@@ -1,6 +1,7 @@
 rule doubletfinder:
     input:
         "h5subset/{sample}.h5",
+        get_nrun,
     output:
         report(
             directory("doubletfinder/{sample}"),
@@ -8,7 +9,7 @@ rule doubletfinder:
             caption="../report/doubletfinder.rst",
             category="Doublet removal",
         ),
-        "doubletfinder/{sample}.h5",
+        "doubletfinder/{sample}.rds",
     params:
         findpK=config["doubletfinder"]["findpK"],
         numthreads=config["doubletfinder"]["numthreads"],

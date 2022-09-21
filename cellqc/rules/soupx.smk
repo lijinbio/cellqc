@@ -7,6 +7,7 @@ rule soupx:
             caption="../report/soupx.rst",
             category="Ambient RNA removal",
         ),
+        "soupx/{sample}_rhoEst.txt",
         "soupx/{sample}.h5",
     script:
         "../scripts/soupx.R"

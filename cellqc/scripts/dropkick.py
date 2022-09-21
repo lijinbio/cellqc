@@ -1,5 +1,5 @@
 import sys
-f, numthreads, thresh_methods = snakemake.input[0], snakemake.params.numthreads, snakemake.params.method
+f, numthreads, thresh_methods=snakemake.input[0], snakemake.params.numthreads, snakemake.params.method
 
 import scanpy as sc
 sc.set_figure_params(color_map='viridis', frameon=False)
@@ -31,4 +31,3 @@ x.obs['barcode']=x.obs.index
 x.obs.to_csv(snakemake.output[4], sep='\t', index=False)
 x.var['symbol']=x.var.index
 x.var.to_csv(snakemake.output[5], sep='\t', index=False)
-

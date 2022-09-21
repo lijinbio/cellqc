@@ -1,6 +1,6 @@
 rule scpred:
     input:
-        "doubletfinder/{sample}.h5",
+        "doubletfinder/{sample}.rds",
     output:
         report(
             directory("scpred/{sample}"),
