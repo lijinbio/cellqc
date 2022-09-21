@@ -7,12 +7,12 @@ import os
 import click
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('-c', '--configfile', type=click.Path(exists=True), help='Configuration file in YAML format.')
+@click.option('-c', '--configfile', required=True, type=click.Path(exists=True), help='Configuration file in YAML format.')
 @click.option('-r', '--rule', type=click.STRING, help='Force to re-run a rule and its downstream. Available: soupx, dropkick, h5subset, doubletfinder.')
 @click.option('-d', '--outdir', type=click.Path(), default='.', help='Outdir. (default: ".")')
 @click.option('-t', '--numthreads', type=click.INT, default=4, help='Number of threads. (default: 4)')
 @click.version_option(version=__version__)
-def main():
+def main(configfile, rule, outdir, numthreads):
 	"""
 cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
 
