@@ -4,7 +4,7 @@ rule scpred:
     output:
         report(
             directory("scpred/{sample}"),
-            patterns=["*.png", "*.txt"],
+            patterns=["{name1}.png", "{name2}.txt"],
             caption="../report/scpred.rst",
             category="Cell type annotation",
         ),

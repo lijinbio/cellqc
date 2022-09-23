@@ -4,7 +4,7 @@ rule filterbycount:
     output:
         report(
             directory("filterbycount/{sample}"),
-            patterns=["*.png", "*.txt"],
+            patterns=["{name1}.png", "{name2}.txt"],
             caption="../report/filterbycount.rst",
             category="Filter cells by counts",
         ),

@@ -4,7 +4,7 @@ rule doubletfinder:
     output:
         report(
             directory("doubletfinder/{sample}"),
-            patterns=["*.pdf"],
+            patterns=["{name}.pdf"],
             caption="../report/doubletfinder.rst",
             category="Doublet removal",
         ),
