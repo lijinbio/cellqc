@@ -60,7 +60,7 @@ The configuration file is in a YAML format. An example configuration can be foun
 
 1. samples
 
-This is a sample file (e.g., `samples.txt`) that defines sample ID and its Cell Ranger output directory. This file is tab-delimited with two headers `sample` and `cellranger`.
+This is a sample file (e.g., `samples.txt`) that defines sample ID and its Cell Ranger output directory. The third column `nrun` is the number of sequencing runs of a sample. It is useful for a sample with a Cell Ranger analysis using combined raw reads from multiple runs. This file is tab-delimited with three headers `sample`, `cellranger`, and `nrun`.
 
 2. dropkick
 
@@ -90,6 +90,16 @@ A pre-trained classifier for cell-type annotation by scPred.
 | scpred.reference | The pre-trained reference classifier saved in a RDS file. See https://github.com/powellgenomicslab/scPred |
 | scpred.threshold | Threshold for a positive prediction. |
 
+5. filterbycount
+
+To filter cells by nCount, nFeature, and percentage of mitochondria reads.
+
+| Parameter | Description |
+|-------|-------|
+| filterbycount.mincount | Minimum counts for a cell. |
+| filterbycount.minfeature | Minimum features for a cell. |
+| filterbycount.mito | Maximum percentage of mitocondria transcripts. |
+
 ### An example
 
 This example demonstrates the pipeline on two AMD samples. The test data consists of Cell Ranger output directories of two AMD samples, as well as a pretrained calssifier for cell-type annotation.
@@ -118,13 +128,19 @@ doubletfinder:
 scpred:
   reference: /path/to/scPred_reference.rds
   threshold: 0.9
+
+## Filter cells by nCount, nFeature, and mito
+filterbycount:
+  mincount: 500
+  minfeature: 300
+  mito: 0.05
 ```
 
 ```
 $ cat sample.txt
-sample	cellranger
-AMD1	/path/to/cellqc_test_data/AMD1
-AMD2	/path/to/cellqc_test_data/AMD2
+sample	cellranger	nrun
+AMD1	/path/to/cellqc_test_data/AMD1	1
+AMD2	/path/to/cellqc_test_data/AMD2	1
 ```
 
 Below command is to run the pipeline by the installed entrypoint `cellqc`.
@@ -140,7 +156,8 @@ $ git clone https://github.com/lijinbio/cellqc.git
 $ cp -R cellqc/cellqc /path/to/local
 # edit config.yaml and sample.txt under the local directory
 $ snakemake -j 4 --configfile config.yaml
-$ snakemake -j 4 --configfile config.yaml --report report.zip
+$ snakemake -j 4 --configfile config.yaml --report report.html
+$ snakemake -j 4 --configfile config.yaml --dag | tee dag.dot | dot -Tpdf > dag.pdf
 ```
 
 A report file will be produced with quality control statistic figures.
