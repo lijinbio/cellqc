@@ -11,9 +11,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('-r', '--rule', type=click.STRING, help='Force to re-run a rule and its downstream. Available: soupx, dropkick, h5subset, doubletfinder.')
 @click.option('-d', '--outdir', type=click.Path(), default='.', help='Outdir. (default: ".")')
 @click.option('-t', '--numthreads', type=click.INT, default=4, help='Number of threads. (default: 4)')
+@click.option('-D', '--dagonly', is_flag=True, help='Generate the DAG of jobs only. Useful to update dag.pdf. (default: False)')
 @click.option('-R', '--reportonly', is_flag=True, help='Generate the report only. Useful to update report.html. (default: False)')
 @click.version_option(version=__version__)
-def main(configfile, rule, outdir, numthreads, reportonly):
+def main(configfile, rule, outdir, numthreads, dagonly, reportonly):
 	"""
 cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
 
@@ -34,13 +35,19 @@ Authors: Jin Li <lijin.abc@gmail.com>
 	if rule is not None:
 		cmdrun+=f' -R {rule}'
 
-	if not reportonly:
+	if dagonly:
+		print(f'$ {cmddag}')
+		os.system(cmddag)
+	elif reportonly:
+		print(f'$ {cmdreport}')
+		os.system(cmdreport)
+	else:
 		print(f'$ {cmdrun}')
 		os.system(cmdrun)
 		print(f'$ {cmddag}')
 		os.system(cmddag)
-	print(f'$ {cmdreport}')
-	os.system(cmdreport)
+		print(f'$ {cmdreport}')
+		os.system(cmdreport)
 
 if __name__ == "__main__":
 	main()
