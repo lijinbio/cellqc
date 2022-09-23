@@ -40,4 +40,10 @@ doubletfinder:
 scpred:
   reference: $outdir/scPred_reference.rds
   threshold: 0.9
+
+## Filter cells by nCount, nFeature, and mito
+filterbycount:
+  mincount: 500
+  minfeature: 300
+  mito: 5
 EOF

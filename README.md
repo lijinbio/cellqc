@@ -133,7 +133,7 @@ scpred:
 filterbycount:
   mincount: 500
   minfeature: 300
-  mito: 0.05
+  mito: 5
 ```
 
 ```
