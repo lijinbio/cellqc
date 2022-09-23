@@ -160,8 +160,9 @@ $ snakemake -j 4 --configfile config.yaml --report report.html
 $ snakemake -j 4 --configfile config.yaml --dag | tee dag.dot | dot -Tpdf > dag.pdf
 ```
 
-A DAG of jobs and a report of result files will be produced.
+A directed acyclic graph (DAG) of jobs will be generated. For example,
 
 ![DAG](docs/tests/dag.png)
-![report.html](docs/tests/report.html)
+
+A report of result files will be also produced, such as [report.html](https://htmlpreview.github.io/?https://github.com/lijinbio/cellqc/blob/master/docs/tests/report.html).
 
