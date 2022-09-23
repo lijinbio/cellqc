@@ -13,8 +13,9 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('-t', '--numthreads', type=click.INT, default=4, help='Number of threads. (default: 4)')
 @click.option('-D', '--dagonly', is_flag=True, help='Generate the DAG of jobs only. Useful to update dag.pdf. (default: False)')
 @click.option('-R', '--reportonly', is_flag=True, help='Generate the report only. Useful to update report.html. (default: False)')
+@click.option('-S', '--summaryonly', is_flag=True, help='Generate the detailed summary only. Useful to update summary.txt. (default: False)')
 @click.version_option(version=__version__)
-def main(configfile, rule, outdir, numthreads, dagonly, reportonly):
+def main(configfile, rule, outdir, numthreads, dagonly, reportonly, summaryonly):
 	"""
 cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
 
@@ -32,6 +33,7 @@ Authors: Jin Li <lijin.abc@gmail.com>
 	cmdrun=cmdstr+f' -j {numthreads}'
 	cmdreport=cmdstr+f' --report report.html'
 	cmddag=cmdstr+f' --dag | tee {outdir}/dag.dot | dot -Tpdf > {outdir}/dag.pdf'
+	cmdsummary=cmdstr+f' -D -c1 | tee {outdir}/summary.txt'
 	if rule is not None:
 		cmdrun+=f' -R {rule}'
 
@@ -41,6 +43,9 @@ Authors: Jin Li <lijin.abc@gmail.com>
 	elif reportonly:
 		print(f'$ {cmdreport}')
 		os.system(cmdreport)
+	elif summaryonly:
+		print(f'$ {cmdsummary}')
+		os.system(cmdsummary)
 	else:
 		print(f'$ {cmdrun}')
 		os.system(cmdrun)
@@ -48,6 +53,8 @@ Authors: Jin Li <lijin.abc@gmail.com>
 		os.system(cmddag)
 		print(f'$ {cmdreport}')
 		os.system(cmdreport)
+		print(f'$ {cmdsummary}')
+		os.system(cmdsummary)
 
 if __name__ == "__main__":
 	main()
