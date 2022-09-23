@@ -160,5 +160,8 @@ $ snakemake -j 4 --configfile config.yaml --report report.html
 $ snakemake -j 4 --configfile config.yaml --dag | tee dag.dot | dot -Tpdf > dag.pdf
 ```
 
-A report file will be produced with quality control statistic figures.
+A DAG of jobs and a report of result files will be produced.
+
+![DAG](docs/tests/dag.png)
+![report.html](docs/tests/report.html)
 
