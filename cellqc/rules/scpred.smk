@@ -4,11 +4,16 @@ rule scpred:
     output:
         report(
             directory("scpred/{sample}"),
-            patterns=["{name1}.png", "{name2}.txt"],
+            patterns=["{name}.png"],
             caption="../report/scpred.rst",
             category="Step 4: Cell type annotation",
         ),
         "scpred/{sample}.h5seurat",
+        report(
+            "scpred/{sample}/contingency.txt",
+            caption="../report/scpred.rst",
+            category="Step 4: Cell type annotation",
+        ),
     params:
         ref=config["scpred"]["reference"],
         threshold=config["scpred"]["threshold"],
