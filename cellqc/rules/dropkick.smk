@@ -5,17 +5,17 @@ rule dropkick:
         report(
             "dropkick/{sample}_qc_summary.png",
             caption="../report/dropkick-qc.rst",
-            category="Empty droplet removal",
+            category="Step 2: Empty droplet removal",
         ),
         report(
             "dropkick/{sample}_score_plot.png",
             caption="../report/dropkick-score.rst",
-            category="Empty droplet removal",
+            category="Step 2: Empty droplet removal",
         ),
         report(
             "dropkick/{sample}_coef_plot.png",
             caption="../report/dropkick-coef.rst",
-            category="Empty droplet removal",
+            category="Step 2: Empty droplet removal",
         ),
         "dropkick/{sample}.h5ad",
         "dropkick/{sample}_obs.txt.gz",

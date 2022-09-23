@@ -6,7 +6,7 @@ rule h5subset:
         report(
             "h5subset/{sample}_dropkick_stat.txt",
             caption="../report/h5subset.rst",
-            category="Empty droplet removal",
+            category="Step 2: Empty droplet removal",
         ),
         "h5subset/{sample}.h5",
     script:

@@ -6,7 +6,7 @@ rule filterbycount:
             directory("filterbycount/{sample}"),
             patterns=["{name1}.png", "{name2}.txt"],
             caption="../report/filterbycount.rst",
-            category="Filter cells by counts",
+            category="Step 5: Filter cells by counts",
         ),
         "filterbycount/{sample}.h5seurat",
     params:

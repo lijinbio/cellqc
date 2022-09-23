@@ -6,7 +6,7 @@ rule doubletfinder:
             directory("doubletfinder/{sample}"),
             patterns=["{name}.pdf"],
             caption="../report/doubletfinder.rst",
-            category="Doublet removal",
+            category="Step 3: Doublet removal",
         ),
         "doubletfinder/{sample}.rds",
     params:
