@@ -5,11 +5,23 @@ suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(DoubletFinder))
 suppressPackageStartupMessages(library(ggplot2))
 
-x=Read10X_h5(snakemake@input[[1]])
-x=CreateSeuratObject(counts=x)
+infile=snakemake@input[[1]]
+outdir=snakemake@output[[1]]
+
+if (endsWith(infile, '.h5')) {
+	x=Read10X_h5(infile)
+	x=CreateSeuratObject(counts=x)
+} else if (endsWith(infile, '.rds')) {
+	x=readRDS(infile)
+} else if (endsWith(infile, '.h5seurat')) {
+	x=LoadH5Seurat(infile, assay='RNA')
+} else {
+	write('Error: wrong infile. Please input either .rds or .h5seurat file\n', stderr())
+	q(status=1)
+}
+
 x=x %>% NormalizeData() %>% FindVariableFeatures(selection.method='vst', nfeatures=2000) %>% ScaleData() %>% RunPCA() %>% RunTSNE() %>% RunUMAP(dims=1:30)
 
-outdir=snakemake@output[[1]]
 if (!dir.exists(outdir)) {
 	dir.create(outdir)
 }

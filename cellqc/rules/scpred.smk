@@ -6,13 +6,13 @@ rule scpred:
             directory("scpred/{sample}"),
             patterns=["{name}.png"],
             caption="../report/scpred.rst",
-            category="Step 4: Cell type annotation",
+            category="Step 5: Cell type annotation",
         ),
         "scpred/{sample}.h5seurat",
         report(
             "scpred/{sample}/contingency.txt",
             caption="../report/scpred.rst",
-            category="Step 4: Cell type annotation",
+            category="Step 5: Cell type annotation",
         ),
     params:
         ref=config["scpred"]["reference"],

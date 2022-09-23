@@ -12,7 +12,10 @@ mito=snakemake@params[['mito']]
 sampleid=snakemake@params[['sample']]
 outfile=snakemake@output[[2]]
 
-if (endsWith(infile, '.rds')) {
+if (endsWith(infile, '.h5')) {
+	x=Read10X_h5(infile)
+	x=CreateSeuratObject(counts=x)
+} else if (endsWith(infile, '.rds')) {
 	x=readRDS(infile)
 } else if (endsWith(infile, '.h5seurat')) {
 	x=LoadH5Seurat(infile, assay='RNA')

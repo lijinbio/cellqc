@@ -1,12 +1,12 @@
 rule doubletfinder:
     input:
-        "h5subset/{sample}.h5",
+        "filterbycount/{sample}.h5seurat",
     output:
         report(
             directory("doubletfinder/{sample}"),
             patterns=["{name}.pdf"],
             caption="../report/doubletfinder.rst",
-            category="Step 3: Doublet removal",
+            category="Step 4: Doublet removal",
         ),
         "doubletfinder/{sample}.rds",
     params:

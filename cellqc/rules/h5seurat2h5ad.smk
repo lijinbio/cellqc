@@ -1,6 +1,6 @@
 rule h5seurat2h5ad:
     input:
-        "filterbycount/{sample}.h5seurat",
+        "scpred/{sample}.h5seurat",
     output:
         "cellqc/{sample}.h5ad",
     script:

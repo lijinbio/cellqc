@@ -1,18 +1,18 @@
 rule filterbycount:
     input:
-        "scpred/{sample}.h5seurat",
+        "h5subset/{sample}.h5",
     output:
         report(
             directory("filterbycount/{sample}"),
             patterns=["{name}.pdf"],
             caption="../report/filterbycount.rst",
-            category="Step 5: Filter cells by counts",
+            category="Step 3: Filter cells by counts",
         ),
         "filterbycount/{sample}.h5seurat",
         report(
             "filterbycount/{sample}/ncell.txt",
             caption="../report/filterbycount.rst",
-            category="Step 5: Filter cells by counts",
+            category="Step 3: Filter cells by counts",
         ),
     params:
         mincount=config["filterbycount"]["mincount"],
