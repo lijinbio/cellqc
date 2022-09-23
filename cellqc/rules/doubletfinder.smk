@@ -1,7 +1,6 @@
 rule doubletfinder:
     input:
         "h5subset/{sample}.h5",
-        get_nrun,
     output:
         report(
             directory("doubletfinder/{sample}"),
@@ -14,5 +13,6 @@ rule doubletfinder:
         findpK=config["doubletfinder"]["findpK"],
         numthreads=config["doubletfinder"]["numthreads"],
         pK=config["doubletfinder"]["pK"],
+        nrun=lambda wildcards: samples.loc[wildcards.sample, "nrun"]
     script:
         "../scripts/doubletfinder.R"

@@ -49,7 +49,7 @@ if (snakemake@params[['findpK']]) {
 	pKopt=snakemake@params[['pK']]
 }
 
-nrun=snakemake@input[[2]]
+nrun=snakemake@params[['nrun']]
 doubletratio=round(ncol(x)*0.1/(nrun*13000), digits=2)
 nExp_poi=round(doubletratio*ncol(x))
 cat(sprintf('%s: expected %f of %d cells is %d\n', basename(snakemake@input[[1]]), doubletratio, nrow(x@meta.data), nExp_poi))
