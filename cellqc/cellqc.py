@@ -29,7 +29,7 @@ Authors: Jin Li <lijin.abc@gmail.com>
 	cmdstr=f'snakemake -s {srcdir}/Snakefile --configfile {configfile} -C configdir={configdir} -d {outdir}'
 	cmdrun=cmdstr+f' -j {numthreads}'
 	cmdreport=cmdstr+f' --report report.html'
-	cmddag=cmdstr+f' --dag | tee dag.dot | dot -Tpdf > dag.pdf'
+	cmddag=cmdstr+f' --dag | tee {outdir}/dag.dot | dot -Tpdf > {outdir}/dag.pdf'
 	if rule is not None:
 		cmdrun+=f' -R {rule}'
 

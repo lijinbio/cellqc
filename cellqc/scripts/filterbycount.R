@@ -1,0 +1,40 @@
+# vim: set noexpandtab tabstop=2:
+
+suppressPackageStartupMessages(library(Seurat))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(SeuratDisk))
+
+infile=snakemake@input[[1]]
+outdir=snakemake@output[[1]]
+mincount=snakemake@params[['mincount']]
+minfeature=snakemake@params[['minfeature']]
+mito=snakemake@params[['mito']]
+sampleid=snakemake@params[['sample']]
+outfile=snakemake@output[[2]]
+
+
+if (endsWith(infile, '.rds')) {
+	x=readRDS(infile)
+} else if (endsWith(infile, '.h5seurat')) {
+	x=LoadH5Seurat(infile, assay='RNA')
+} else {
+	write('Error: wrong infile. Please input either .rds or .h5seurat file\n', stderr())
+	q(status=1)
+}
+
+if (!dir.exists(outdir)) {
+	dir.create(outdir)
+}
+
+x[['percent.mt']]=PercentageFeatureSet(x, pattern='^MT-|^mt-')
+
+Idents(x)=sampleid
+p=VlnPlot(x, features=c('nCount_RNA', 'nFeature_RNA', 'percent.mt'), ncol=3, log=F, pt.size=0) + NoLegend()
+ggsave(p, file=sprintf('%s/feature_bf.pdf', outdir), width=9, height=7.5, units='in', useDingbats=F)
+
+x=subset(x, subset=nCount_RNA>=mincount & nFeature_RNA>=minfeature & percent.mt<=mito)
+
+p=VlnPlot(x, features=c('nCount_RNA', 'nFeature_RNA', 'percent.mt'), ncol=3, log=F, pt.size=0) + NoLegend()
+ggsave(p, file=sprintf('%s/feature_af.pdf', outdir), width=9, height=7.5, units='in', useDingbats=F)
+
+SaveH5Seurat(x, outfile)
