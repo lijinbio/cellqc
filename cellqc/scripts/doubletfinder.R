@@ -1,6 +1,7 @@
 # vim: set noexpandtab tabstop=2:
 
 suppressPackageStartupMessages(library(Seurat))
+suppressPackageStartupMessages(library(SeuratDisk))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(DoubletFinder))
 suppressPackageStartupMessages(library(ggplot2))
