@@ -6,6 +6,7 @@ min_version("6.0")
 import os
 
 config["samples"] = os.path.join(config["configdir"], config["samples"])
+sampledir=os.path.dirname(os.path.abspath(config["samples"]))
 config["scpred"]["reference"] = os.path.join(
     config["configdir"], config["scpred"]["reference"]
 )
