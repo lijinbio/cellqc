@@ -3,8 +3,23 @@
 
 __version__ = "0.0.1"
 
+import sys
 import os
 import click
+
+def runcmd(cmd):
+	print(f'Start running: {cmd}')
+	try:
+		exitcode=os.system(cmd)
+		if exitcode!=0:
+			print(f'Error: {cmd} failed.', file=sys.stderr)
+			sys.exit(-1)
+	except OSError as e:
+		print("Execution failed: ", e, file=sys.stderr)
+		sys.exit(-1)
+	print(f'Finish running: {cmd}')
+	return exitcode
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('-c', '--configfile', required=True, type=click.Path(exists=True), help='Configuration file in YAML format.')
@@ -38,23 +53,16 @@ Authors: Jin Li <lijin.abc@gmail.com>
 		cmdrun+=f' -R {rule}'
 
 	if dagonly:
-		print(f'$ {cmddag}')
-		os.system(cmddag)
+		runcmd(cmddag)
 	elif reportonly:
-		print(f'$ {cmdreport}')
-		os.system(cmdreport)
+		runcmd(cmdreport)
 	elif summaryonly:
-		print(f'$ {cmdsummary}')
-		os.system(cmdsummary)
+		runcmd(cmdsummary)
 	else:
-		print(f'$ {cmdrun}')
-		os.system(cmdrun)
-		print(f'$ {cmddag}')
-		os.system(cmddag)
-		print(f'$ {cmdreport}')
-		os.system(cmdreport)
-		print(f'$ {cmdsummary}')
-		os.system(cmdsummary)
+		runcmd(cmdrun)
+		runcmd(cmddag)
+		runcmd(cmdreport)
+		runcmd(cmdsummary)
 
 if __name__ == "__main__":
 	main()
