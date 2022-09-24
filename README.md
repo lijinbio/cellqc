@@ -116,6 +116,7 @@ samples: /path/to/samples.txt
 
 ## configuration for dropkick
 dropkick:
+  skip: true
   method: multiotsu
   numthreads: 1
 
