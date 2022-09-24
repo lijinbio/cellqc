@@ -14,7 +14,6 @@ validate(config, schema="schemas/config.schema.yaml")
 samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
 validate(samples, "schemas/samples.schema.yaml")
 
-
 rule all:
     input:
         expand(
@@ -23,7 +22,6 @@ rule all:
             ],
             sample=samples["sample"].tolist(),
         ),
-
 
 include: "rules/common.smk"
 include: "rules/soupx.smk"
