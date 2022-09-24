@@ -27,6 +27,7 @@ samples: $sample
 
 ## configuration for dropkick
 dropkick:
+  skip: false
   method: multiotsu
   numthreads: 1
 

@@ -1,6 +1,6 @@
 rule filterbycount:
     input:
-        "h5subset/{sample}.h5",
+        "soupx/{sample}.h5" if config["dropkick"]["skip"] else "h5subset/{sample}.h5",
     output:
         report(
             directory("filterbycount/{sample}"),

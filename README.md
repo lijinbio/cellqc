@@ -68,6 +68,7 @@ This section defines two parameters for empty droplet removal by dropkick.
 
 | Parameter | Description |
 |-------|-------|
+| dropkick.skip | To estimate further empty drops by [Dropkick](https://github.com/KenLauLab/dropkick) if `true`. If set `false`, skip Dropkick and use the estimated cells from Cell Ranger (using [EmptyDrops](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/algorithms/overview#cell_calling)) instead. |
 | dropkick.method | The thresholding method for labeling the training data for true cells, such as multiotsu, otsu, li, or mean. |
 | dropkick.numthreads | Number of threads. |
 
@@ -77,7 +78,7 @@ This section includes three parameters for doublet removal by DoubletFinder.
 
 | Parameter | Description |
 |-------|-------|
-| doubletfinder.findpK | To estimate the neighbor size (pK) by mean-variance bimodality coefficients if true. If set false, skip the estimation and use the preset pK value. |
+| doubletfinder.findpK | To estimate the neighbor size (pK) by mean-variance bimodality coefficients if `true`. If set `false`, skip the estimation and use the preset pK value. |
 | doubletfinder.numthreads | Number of threads. |
 | doubletfinder.pK | A preset neighbor size (pK). Will be used if `doubletfinder.findpK=false`.|
 
@@ -126,7 +127,7 @@ filterbycount:
 
 ## configuration for DoubletFinder
 doubletfinder:
-  findpK: true
+  findpK: false
   numthreads: 5
   pK: 0.005
 
