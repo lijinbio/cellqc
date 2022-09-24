@@ -12,4 +12,4 @@ Rscript -e "remotes::install_github('constantAmateur/SoupX',ref='devel')" ## deb
 mamba install -y numpy=1.21 # bug fix to install dropkick
 mamba install -y anndata=0.7.8 # Fix .h5ad version
 pip install dropkick
-pip install .
+pip install git+https://github.com/lijinbio/cellqc.git
