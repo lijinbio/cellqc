@@ -8,6 +8,7 @@ suppressPackageStartupMessages(library(ggplot2))
 
 infile=snakemake@input[[1]]
 outdir=snakemake@output[[1]]
+sampleid=basename(infile)
 
 if (endsWith(infile, '.h5')) {
 	x=Read10X_h5(infile)
@@ -65,7 +66,21 @@ if (snakemake@params[['findpK']]) {
 nrun=snakemake@params[['nrun']]
 doubletratio=round(ncol(x)*0.1/(nrun*13000), digits=2)
 nExp_poi=round(doubletratio*ncol(x))
-cat(sprintf('%s: expected %f of %d cells is %d\n', basename(snakemake@input[[1]]), doubletratio, nrow(x@meta.data), nExp_poi))
+cat(sprintf('%s: expected %f of %d cells is %d\n', sampleid, doubletratio, ncol(x), nExp_poi))
+utils::write.table(
+	data.frame(
+		sampleid=sampleid
+		, doubletratio=doubletratio
+		, ncell_bf=ncol(x)
+		, nExpdoublet=nExp_poi
+		, ncell_af=ncol(x)-nExp_poi
+		)
+	, file=sprintf('%s/doublet_ratio.txt', outdir)
+	, quote=F
+	, sep='\t'
+	, row.names=F
+	, col.names=T
+	)
 
 res=doubletFinder_v3(x, PCs=1:10, pN=0.25, pK=pKopt, nExp=nExp_poi, reuse.pANN=F, sct=F)
 
