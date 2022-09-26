@@ -60,7 +60,7 @@ The configuration file is in a YAML format. An example configuration can be foun
 
 1. samples
 
-This is a sample file (e.g., `samples.txt`) that defines sample ID and its Cell Ranger output directory. The third column `nrun` is the number of library reaction runs a sample. It is useful for a sample with a Cell Ranger analysis using combined raw reads from multiple reactions. This file is tab-delimited with three headers `sample`, `cellranger`, and `nrun`.
+This is a sample file (e.g., `samples.txt`) tab-delimited with headers: `sample`, `cellranger`, and/or `nreaction`. The `sample` column is the sample ID per sample, and the `cellranger` is its Cell Ranger output directory. The third column `nreaction` is the number of reactions in the library preparation, which is useful to infer expected doublets for a sample with a Cell Ranger analysis using combined raw reads from multiple reactions. If the `nreaction` column is not specified in the sample file, the default 1 reaction is used for all samples.
 
 2. dropkick
 
@@ -140,7 +140,7 @@ scpred:
 
 ```
 $ cat sample.txt
-sample	cellranger	nrun
+sample	cellranger	nreaction
 AMD1	/path/to/cellqc_test_data/AMD1	1
 AMD2	/path/to/cellqc_test_data/AMD2	1
 ```
