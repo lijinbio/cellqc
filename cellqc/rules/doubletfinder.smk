@@ -9,6 +9,11 @@ rule doubletfinder:
             category="Step 4: Doublet removal",
         ),
         "doubletfinder/{sample}.rds",
+        report(
+            "doubletfinder/{sample}/doublet_ratio.txt",
+            caption="../report/doubletfinder.rst",
+            category="Step 4: Doublet removal",
+        ),
     params:
         findpK=config["doubletfinder"]["findpK"],
         numthreads=config["doubletfinder"]["numthreads"],

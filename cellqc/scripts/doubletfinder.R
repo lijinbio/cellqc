@@ -8,6 +8,7 @@ suppressPackageStartupMessages(library(ggplot2))
 
 infile=snakemake@input[[1]]
 outdir=snakemake@output[[1]]
+statfile=snakemake@output[[3]]
 sampleid=snakemake@params[['sampleid']]
 
 if (endsWith(infile, '.h5')) {
@@ -75,7 +76,7 @@ utils::write.table(
 		, nExpdoublet=nExp_poi
 		, ncell_af=ncol(x)-nExp_poi
 		)
-	, file=sprintf('%s/doublet_ratio.txt', outdir)
+	, file=statfile
 	, quote=F
 	, sep='\t'
 	, row.names=F
