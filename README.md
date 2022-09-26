@@ -60,7 +60,7 @@ The configuration file is in a YAML format. An example configuration can be foun
 
 1. samples
 
-This is a sample file (e.g., `samples.txt`) that defines sample ID and its Cell Ranger output directory. The third column `nrun` is the number of sequencing runs of a sample. It is useful for a sample with a Cell Ranger analysis using combined raw reads from multiple runs. This file is tab-delimited with three headers `sample`, `cellranger`, and `nrun`.
+This is a sample file (e.g., `samples.txt`) that defines sample ID and its Cell Ranger output directory. The third column `nrun` is the number of library reaction runs a sample. It is useful for a sample with a Cell Ranger analysis using combined raw reads from multiple reactions. This file is tab-delimited with three headers `sample`, `cellranger`, and `nrun`.
 
 2. dropkick
 
