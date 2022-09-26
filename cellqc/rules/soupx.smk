@@ -13,5 +13,7 @@ rule soupx:
             category="Step 1: Ambient RNA removal",
         ),
         "soupx/{sample}.h5",
+    params:
+        sampleid="{sample}"
     script:
         "../scripts/soupx.R"

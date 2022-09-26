@@ -9,7 +9,7 @@ outdir=snakemake@output[[1]]
 mincount=snakemake@params[['mincount']]
 minfeature=snakemake@params[['minfeature']]
 mito=snakemake@params[['mito']]
-sampleid=snakemake@params[['sample']]
+sampleid=snakemake@params[['sampleid']]
 outfile=snakemake@output[[2]]
 
 if (endsWith(infile, '.h5')) {
@@ -41,5 +41,5 @@ ncell_af=ncol(x)
 p=VlnPlot(x, features=c('nCount_RNA', 'nFeature_RNA', 'percent.mt'), ncol=3, log=F, pt.size=0) + NoLegend()
 ggsave(p, file=sprintf('%s/feature_af.pdf', outdir), width=9, height=7.5, units='in', useDingbats=F)
 
-utils::write.table(data.frame(sampleid=sampleid, ncell_bf=ncell_bf, ncell_af=ncell_af), file=sprintf('%s/ncell.txt', outdir), quote=F, sep='\t', row.names=F, col.names=T)
+utils::write.table(data.frame(sampleid=sampleid, ncell_bf=ncell_bf, ncell_af=ncell_af), file=sprintf('%s/filter_ncell.txt', outdir), quote=F, sep='\t', row.names=F, col.names=T)
 SaveH5Seurat(x, outfile)

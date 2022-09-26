@@ -14,5 +14,6 @@ rule doubletfinder:
         numthreads=config["doubletfinder"]["numthreads"],
         pK=config["doubletfinder"]["pK"],
         nrun=lambda wildcards: samples.loc[wildcards.sample, "nrun"]
+        sampleid="{sample}"
     script:
         "../scripts/doubletfinder.R"

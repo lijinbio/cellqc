@@ -8,7 +8,7 @@ suppressPackageStartupMessages(library(ggplot2))
 
 infile=snakemake@input[[1]]
 outdir=snakemake@output[[1]]
-sampleid=basename(infile)
+sampleid=snakemake@params[['sampleid']]
 
 if (endsWith(infile, '.h5')) {
 	x=Read10X_h5(infile)
