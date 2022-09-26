@@ -39,7 +39,7 @@ Example:
   cellqc -c config.yaml
 
 \b
-Date: 2022/09/21
+Date: 2022/09/26
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	srcdir=os.path.dirname(os.path.abspath(__file__))

@@ -14,6 +14,6 @@ rule soupx:
         ),
         "soupx/{sample}.h5",
     params:
-        sampleid="{sample}"
+        sampleid="{sample}",
     script:
         "../scripts/soupx.R"

@@ -18,6 +18,6 @@ rule filterbycount:
         mincount=config["filterbycount"]["mincount"],
         minfeature=config["filterbycount"]["minfeature"],
         mito=config["filterbycount"]["mito"],
-        sampleid="{sample}"
+        sampleid="{sample}",
     script:
         "../scripts/filterbycount.R"
