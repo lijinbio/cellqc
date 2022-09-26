@@ -10,7 +10,7 @@ rule filterbycount:
         ),
         "filterbycount/{sample}.h5seurat",
         report(
-            "filterbycount/{sample}/ncell.txt",
+            "filterbycount/{sample}/filter_ncell.txt",
             caption="../report/filterbycount.rst",
             category="Step 3: Filter cells by counts",
         ),
