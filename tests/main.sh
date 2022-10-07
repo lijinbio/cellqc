@@ -3,4 +3,4 @@
 
 source trapdebug
 outdir=$(mrrdir.sh)
-cellqc -c config.yaml -d "$outdir"
+slurmtaco.sh -t 4 -m 20G -- cellqc -c config.yaml -d "$outdir"

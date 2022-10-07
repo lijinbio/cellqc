@@ -45,7 +45,7 @@ Authors: Jin Li <lijin.abc@gmail.com>
 	srcdir=os.path.dirname(os.path.abspath(__file__))
 	configdir=os.path.dirname(os.path.abspath(configfile))
 	cmdstr=f'snakemake -s {srcdir}/Snakefile --configfile {configfile} -C configdir={configdir} -d {outdir}'
-	cmdrun=cmdstr+f' -j {numthreads}'
+	cmdrun=cmdstr+f' -j {numthreads} -r -p --debug-dag --stats Snakefile.stats'
 	cmdreport=cmdstr+f' --report report.html'
 	cmddag=cmdstr+f' --dag | tee {outdir}/dag.dot | dot -Tpdf > {outdir}/dag.pdf'
 	cmdsummary=cmdstr+f' -D -c1 | tee {outdir}/summary.txt'
