@@ -6,6 +6,7 @@ __version__ = "0.0.1"
 import sys
 import os
 import click
+import datetime
 
 def runcmd(cmd):
 	print(f'Start running: {cmd}')
@@ -42,10 +43,13 @@ Example:
 Date: 2022/09/26
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
+	os.makedirs(outdir, exist_ok=True)
+	nowtimestr=datetime.datetime.now().strftime('%y%m%d_%H%M%S')
+
 	srcdir=os.path.dirname(os.path.abspath(__file__))
 	configdir=os.path.dirname(os.path.abspath(configfile))
 	cmdstr=f'snakemake -s {srcdir}/Snakefile --configfile {configfile} -C configdir={configdir} -d {outdir}'
-	cmdrun=cmdstr+f' -j {numthreads} -r -p --debug-dag --stats Snakefile.stats'
+	cmdrun=cmdstr+f' -j {numthreads} -r -p --debug-dag --stats Snakefile_{nowtimestr}.stats'
 	cmdreport=cmdstr+f' --report report.html'
 	cmddag=cmdstr+f' --dag | tee {outdir}/dag.dot | dot -Tpdf > {outdir}/dag.pdf'
 	cmdsummary=cmdstr+f' -D -c1 | tee {outdir}/summary.txt'
