@@ -12,6 +12,7 @@
   </head>
 
   <body>
+    {% if cellrangersummary is not None %}
     <div class="heading">
       <h1>CellRanger metrics summary</h1>
     </div>
@@ -20,6 +21,7 @@
         {{ cellrangersummary }}
       </div>
     </div>
+    {% endif %}
 
   </body>
 

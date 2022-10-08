@@ -1,6 +1,4 @@
 rule qcreport:
-    input:
-        cellrangersummary=get_cellrangersummary,
     output:
         report(
             "qc_report.html",
