@@ -5,5 +5,8 @@ rule qcreport:
             caption="../report/qcreport.rst",
             category="Step 6: QC report",
         ),
+    params:
+        samples=samples,
+        sampledir=sampledir,
     script:
         "../scripts/qcreport.py"

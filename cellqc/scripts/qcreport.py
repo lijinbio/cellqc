@@ -15,10 +15,10 @@ template=env.get_template("index.html.jinja2")
 
 ## Cellranger metrics summary
 tmp=[]
-for k, v in samples['cellranger'].to_dict():
-	vf=os.path.join(sampledir, f"{v}/metrics_summary.csv")
+for k, v in snakemake.params.samples['cellranger'].to_dict().items():
+	vf=os.path.join(snakemake.params.sampledir, f"{v}/metrics_summary.csv")
 	if os.path.exists(vf):
-		x=pd.read_csv(os.path.join(sampledir, f"{v}/metrics_summary.csv"))
+		x=pd.read_csv(vf)
 		x.insert(0, 'sampleid', k)
 		tmp+=[x]
 cellrangersummary=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
