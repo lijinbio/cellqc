@@ -23,6 +23,7 @@ rule all:
             ],
             sample=samples["sample"].tolist(),
         ),
+        qc_report.html,
 
 include: "rules/common.smk"
 include: "rules/soupx.smk"
