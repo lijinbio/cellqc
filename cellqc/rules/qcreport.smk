@@ -1,4 +1,4 @@
-rule scpred:
+rule qcreport:
     input:
         cellrangersummary=get_cellrangersummary,
     output:
