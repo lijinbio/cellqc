@@ -11,6 +11,5 @@ Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'moja
 Rscript -e "remotes::install_github('constantAmateur/SoupX',ref='devel')" ## debug for CellRanger v7
 mamba install -y numpy=1.21 # bug fix to install dropkick
 mamba install -y anndata=0.7.8 # Fix .h5ad version
-mamba install -y snakemake=7.16 # Revert to the old version for path resolution
 pip install dropkick
 pip install git+https://github.com/lijinbio/cellqc.git
