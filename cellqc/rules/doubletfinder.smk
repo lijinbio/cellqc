@@ -8,7 +8,7 @@ rule doubletfinder:
             caption="../report/doubletfinder.rst",
             category="Step 4: Doublet removal",
         ),
-        "doubletfinder/{sample}.rds",
+        "result/{sample}.h5seurat" if config["scpred"]["skip"] else "doubletfinder/{sample}.h5seurat",
         report(
             "doubletfinder/{sample}/doublet_ratio.txt",
             caption="../report/doubletfinder.rst",

@@ -37,14 +37,27 @@ seuratfeatureplot=function(data, features, slot='data', color=c('blue', 'white',
 	}
 }
 
-x=readRDS(snakemake@input[[1]])
-x=CreateSeuratObject(counts=x[['RNA']]@counts, meta.data=x@meta.data)
-x=x %>% NormalizeData() %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA() %>% RunTSNE() %>% RunUMAP(dims=1:30) %>% FindNeighbors(dims=1:30) %>% FindClusters()
-
+infile=snakemake@input[[1]]
 outdir=snakemake@output[[1]]
+resultfile=snakemake@output[[2]]
+contingencyfile=snakemake@output[[3]]
+
 if (!dir.exists(outdir)) {
 	dir.create(outdir)
 }
+
+if (endsWith(infile, '.h5')) {
+	x=Read10X_h5(infile)
+	x=CreateSeuratObject(counts=x)
+} else if (endsWith(infile, '.rds')) {
+	x=readRDS(infile)
+} else if (endsWith(infile, '.h5seurat')) {
+	x=LoadH5Seurat(infile, assay='RNA')
+} else {
+	write('Error: wrong infile. Please input either .rds or .h5seurat file\n', stderr())
+	q(status=1)
+}
+x=x %>% NormalizeData() %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA() %>% RunTSNE() %>% RunUMAP(dims=1:30) %>% FindNeighbors(dims=1:30) %>% FindClusters()
 
 seuratdimplotgroupby(x, reduct='pca', group='seurat_clusters', outfile=sprintf('%s/cluster_pca.png', outdir))
 seuratdimplotgroupby(x, reduct='tsne', group='seurat_clusters', outfile=sprintf('%s/cluster_tsne.png', outdir))
@@ -65,7 +78,7 @@ invisible(
 		})
 	)
 tmp=crossTab(x, 'seurat_clusters', 'scpred_prediction')
-write.txt(cbind(cluster=rownames(tmp), tmp) , file=sprintf('%s/contingency.txt', outdir))
+write.txt(cbind(cluster=rownames(tmp), tmp) , file=contingencyfile)
 
 x=CreateSeuratObject(counts=x[['RNA']]@counts, meta.data=x@meta.data)
-SaveH5Seurat(x, snakemake@output[[2]])
+SaveH5Seurat(x, resultfile)

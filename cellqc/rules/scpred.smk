@@ -1,6 +1,6 @@
 rule scpred:
     input:
-        "doubletfinder/{sample}.rds",
+        "doubletfinder/{sample}.h5seurat",
     output:
         report(
             directory("scpred/{sample}"),
@@ -8,7 +8,7 @@ rule scpred:
             caption="../report/scpred.rst",
             category="Step 5: Cell type annotation",
         ),
-        "scpred/{sample}.h5seurat",
+        "result/{sample}.h5seurat",
         report(
             "scpred/{sample}/contingency.txt",
             caption="../report/scpred.rst",

@@ -27,7 +27,7 @@ samples: $sample
 
 ## configuration for dropkick
 dropkick:
-  skip: false
+  skip: true
   method: multiotsu
   numthreads: 1
 
@@ -45,6 +45,7 @@ doubletfinder:
 
 ## configuration for scPred
 scpred:
+  skip: true
   reference: $outdir/scPred_reference.rds
   threshold: 0.9
 EOF

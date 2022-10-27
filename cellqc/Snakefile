@@ -19,11 +19,11 @@ rule all:
     input:
         expand(
             [
-                "cellqc/{sample}.h5ad",
+                "result/{sample}.h5ad",
             ],
             sample=samples["sample"].tolist(),
         ),
-        "qc_report.html",
+        "result/qc_report.html",
 
 include: "rules/common.smk"
 include: "rules/soupx.smk"

@@ -69,11 +69,21 @@ This section defines two parameters for empty droplet removal by dropkick.
 
 | Parameter | Description |
 |-------|-------|
-| dropkick.skip | To estimate further empty drops by [Dropkick](https://github.com/KenLauLab/dropkick) if `true`. If set `false`, skip Dropkick and use the estimated cells from Cell Ranger (using [EmptyDrops](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/algorithms/overview#cell_calling)) instead. |
+| dropkick.skip | Skip [Dropkick](https://github.com/KenLauLab/dropkick) and use the estimated cells from Cell Ranger alone (using [EmptyDrops](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/algorithms/overview#cell_calling)) if set `true`. If set `false`, to estimate further empty droplets by Dropkick. Be cautious that Dropdick might predict a significant number of false negatives for a poor library. |
 | dropkick.method | The thresholding method for labeling the training data for true cells, such as multiotsu, otsu, li, or mean. |
-| dropkick.numthreads | Number of threads. |
+| dropkick.numthreads | Number of threads. Dropkick will use significant memory. One thread is suggested for this step. |
 
-3. doubletfinder
+3. filterbycount
+
+To filter cells by nCount, nFeature, and percentage of mitochondria reads.
+
+| Parameter | Description |
+|-------|-------|
+| filterbycount.mincount | Minimum counts for a cell. |
+| filterbycount.minfeature | Minimum features for a cell. |
+| filterbycount.mito | Maximum percentage of mitocondria transcripts. |
+
+4. doubletfinder
 
 This section includes three parameters for doublet removal by DoubletFinder.
 
@@ -83,24 +93,19 @@ This section includes three parameters for doublet removal by DoubletFinder.
 | doubletfinder.numthreads | Number of threads. |
 | doubletfinder.pK | A preset neighbor size (pK). Will be used if `doubletfinder.findpK=false`.|
 
-4. scpred
+5. scpred
 
 A pre-trained classifier for cell-type annotation by scPred.
 
 | Parameter | Description |
 |-------|-------|
+| scpred.skip | Skip the automated cell type prediction by scPred if `true`. This is useful for a sample without a pre-trained reference. |
 | scpred.reference | The pre-trained reference classifier saved in a RDS file. See https://github.com/powellgenomicslab/scPred |
 | scpred.threshold | Threshold for a positive prediction. |
 
-5. filterbycount
+### Result files
 
-To filter cells by nCount, nFeature, and percentage of mitochondria reads.
-
-| Parameter | Description |
-|-------|-------|
-| filterbycount.mincount | Minimum counts for a cell. |
-| filterbycount.minfeature | Minimum features for a cell. |
-| filterbycount.mito | Maximum percentage of mitocondria transcripts. |
+Three result files are generated under a `result` directory. `result/*.h5seurat` and `result/*.h5ad` files are count matrices after processing with QC metrics such as "pANN" for proportion of artificial nearest neighbors, and/or "scpred_prediction" for predicted cell type. A report file `result/qc_report.html` is a summary of QC metrics.
 
 ### An example
 
@@ -135,6 +140,7 @@ doubletfinder:
 
 ## configuration for scPred
 scpred:
+  skip: false
   reference: /path/to/scPred_reference.rds
   threshold: 0.9
 ```

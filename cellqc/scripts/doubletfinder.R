@@ -132,4 +132,5 @@ utils::write.table(
 	)
 
 res=subset(res, cells=rownames(res@meta.data)[res@meta.data[, group]=='Singlet'])
-saveRDS(res, file=snakemake@output[[2]])
+x=CreateSeuratObject(counts=res[['RNA']]@counts, meta.data=res@meta.data)
+SaveH5Seurat(x, file=snakemake@output[[2]])
