@@ -1,6 +1,6 @@
 rule scpred:
     input:
-        "doubletfinder/{sample}.h5seurat" if not config["scpred"]["skip"],
+        "doubletfinder/{sample}.h5seurat" if not config["scpred"]["skip"] else None,
     output:
         report(
             directory("scpred/{sample}"),
