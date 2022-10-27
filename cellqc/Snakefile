@@ -27,10 +27,16 @@ rule all:
 
 include: "rules/common.smk"
 include: "rules/soupx.smk"
-include: "rules/dropkick.smk"
-include: "rules/h5subset.smk"
+
+if not config["dropkick"]["skip"]:
+    include: "rules/dropkick.smk"
+    include: "rules/h5subset.smk"
+
 include: "rules/filterbycount.smk"
 include: "rules/doubletfinder.smk"
-include: "rules/scpred.smk"
+
+if not config["scpred"]["skip"]:
+    include: "rules/scpred.smk"
+
 include: "rules/h5seurat2h5ad.smk"
 include: "rules/qcreport.smk"
