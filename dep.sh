@@ -2,7 +2,7 @@
 # vim: set noexpandtab tabstop=2:
 
 source "$(conda info --base)/etc/profile.d/conda.sh"
-conda init && conda create -y -n cellqc && conda activate cellqc
+conda create -y -n cellqc && conda activate cellqc
 conda config --add channels defaults --add channels bioconda --add channels conda-forge
 set -ex
 conda install -y mamba
