@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # vim: set noexpandtab tabstop=2 shiftwidth=2 softtabstop=-1 fileencoding=utf-8:
 
-__version__ = "0.0.1"
-
 import sys
 import os
 import click
@@ -30,7 +28,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('-D', '--dagonly', is_flag=True, help='Generate the DAG of jobs only. Useful to update dag.pdf. (default: False)')
 @click.option('-R', '--reportonly', is_flag=True, help='Generate the report only. Useful to update report.html. (default: False)')
 @click.option('-S', '--summaryonly', is_flag=True, help='Generate the detailed summary only. Useful to update summary.txt. (default: False)')
-@click.version_option(version=__version__)
+@click.version_option()
 def main(configfile, rule, outdir, numthreads, dagonly, reportonly, summaryonly):
 	"""
 cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
@@ -40,7 +38,7 @@ Example:
   cellqc -c config.yaml
 
 \b
-Date: 2022/09/26
+Date: 2022/10/27
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	os.makedirs(outdir, exist_ok=True)

@@ -15,7 +15,7 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as readme
     readme = readme_file.read()
 
 def get_version():
-    main_file = os.path.join(CURDIR, "cellqc", "cellqc.py")
+    main_file = os.path.join(CURDIR, "cellqc", "__init__.py")
     _version_re = re.compile(r"__version__\s+=\s+(?P<version>.*)")
     with open(main_file, "r", encoding="utf8") as f:
         match = _version_re.search(f.read())
@@ -36,7 +36,11 @@ setup(
     keywords=[],
     scripts=[],
     setup_requires=[],
-    entry_points={"console_scripts": ["cellqc=cellqc.cellqc:main"]},
+    entry_points={
+        "console_scripts": [
+            "cellqc=cellqc.cellqc:main",
+            ]
+        },
     url="https://github.com/lijinbio/cellqc",
     version=get_version(),
     zip_safe=False,
