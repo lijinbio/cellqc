@@ -19,7 +19,7 @@ def runcmd(cmd):
 	print(f'Finish running: {cmd}')
 	return exitcode
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+CONTEXT_SETTINGS=dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('-c', '--configfile', required=True, type=click.Path(exists=True), help='Configuration file in YAML format.')
 @click.option('-r', '--rule', type=click.STRING, help='Force to re-run a rule and its downstream. Available: soupx, dropkick, h5subset, doubletfinder.')

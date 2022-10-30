@@ -7,19 +7,19 @@ import ast
 
 from setuptools import setup, find_packages
 
-DEPENDENCIES = ['click', 'snakemake', 'pygraphviz', 'Jinja2']
-EXCLUDE_FROM_PACKAGES = ["contrib", "docs", "tests*"]
-CURDIR = os.path.abspath(os.path.dirname(__file__))
+DEPENDENCIES=['click', 'snakemake', 'pygraphviz', 'Jinja2']
+EXCLUDE_FROM_PACKAGES=["contrib", "docs", "tests*"]
+CURDIR=os.path.abspath(os.path.dirname(__file__))
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as readme_file:
-    readme = readme_file.read()
+    readme=readme_file.read()
 
 def get_version():
-    main_file = os.path.join(CURDIR, "cellqc", "__init__.py")
-    _version_re = re.compile(r"__version__\s+=\s+(?P<version>.*)")
+    main_file=os.path.join(CURDIR, "cellqc", "__init__.py")
+    _version_re=re.compile(r"__version__\s+=\s+(?P<version>.*)")
     with open(main_file, "r", encoding="utf8") as f:
-        match = _version_re.search(f.read())
-        version = match.group("version") if match is not None else '"unknown"'
+        match=_version_re.search(f.read())
+        version=match.group("version") if match is not None else '"unknown"'
     return str(ast.literal_eval(version))
 
 setup(

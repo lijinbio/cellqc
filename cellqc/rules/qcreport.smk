@@ -1,4 +1,7 @@
 rule qcreport:
+    input:
+        soupxrhoEst=expand(["soupx/{sample}_rhoEst.txt"], sample=samples["sample"].tolist()),
+        soupxrho=expand(["soupx/{sample}_rho.pdf"], sample=samples["sample"].tolist()),
     output:
         report(
             "result/qc_report.html",

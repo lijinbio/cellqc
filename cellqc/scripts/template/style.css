@@ -4,10 +4,14 @@
 	font-family: Arial, Helvetica, sans-serif;
 }
 .heading {
-	display: flex;
+	display: block;
 }
 h1 {
 	font-size: 12px;
+	padding: 3px;
+}
+h2 {
+	font-size: 10px;
 	padding: 3px;
 }
 .outer-wrapper {
@@ -55,4 +59,19 @@ table.dataframe td {
 	font-size: 10px;
 	border: 1px solid rgb(177, 177, 177);
 	padding-left: 1px;
+}
+
+div.pdf {
+	position: static;
+	padding: 1px;
+	float: left;
+	display: block;
+}
+div.iframe-wrapper {
+	position: static;
+	padding: 1px;
+	width: 320px;
+	height: 320px;
+	float: left;
+	display: block;
 }
