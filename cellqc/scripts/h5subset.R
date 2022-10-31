@@ -6,7 +6,7 @@ f=subset(f, dropkick_label=='True')
 ids=f[, 'barcode']
 
 res=data.frame(
-	id=basename(snakemake@input[[1]])
+	sampleid=snakemake@params[['sampleid']]
 	, emptydrops=ncol(x)
 	, dropkick=length(ids)
 	, intersection=length(intersect(ids, colnames(x)))

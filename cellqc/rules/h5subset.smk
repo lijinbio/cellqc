@@ -9,5 +9,7 @@ rule h5subset:
             category="Step 2: Empty droplet removal",
         ),
         "h5subset/{sample}.h5",
+    params:
+        sampleid="{sample}",
     script:
         "../scripts/h5subset.R"
