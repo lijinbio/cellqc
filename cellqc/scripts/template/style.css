@@ -4,7 +4,7 @@
 	font-family: Arial, Helvetica, sans-serif;
 }
 .heading {
-	display: block;
+	display: flex;
 }
 h1 {
 	font-size: 12px;
@@ -61,17 +61,19 @@ table.dataframe td {
 	padding-left: 1px;
 }
 
-div.pdf {
-	position: static;
-	padding: 1px;
-	float: left;
+div.result {
 	display: block;
 }
+
+div.pdf {
+	padding: 1px;
+	display: inline-block;
+}
+
 div.iframe-wrapper {
 	position: static;
 	padding: 1px;
 	width: 320px;
 	height: 320px;
-	float: left;
 	display: block;
 }

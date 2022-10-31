@@ -60,6 +60,10 @@ _soupxrho={f : data_uri_from_file(f) for f in snakemake.input.soupxrho}
 ## Dropkick
 
 ## Filterbycounts
+tmp=[pd.read_csv(f, sep='\t', header=0) for f in snakemake.input.filterbycountncell]
+_filterbycountncell=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
+_filterbycountpltbf={f : data_uri_from_file(f) for f in snakemake.input.filterbycountpltbf}
+_filterbycountpltaf={f : data_uri_from_file(f) for f in snakemake.input.filterbycountpltaf}
 
 ## DoubletFinder
 
@@ -73,5 +77,8 @@ with open(outfile, mode="w", encoding="utf-8") as f:
 			cellrangersummary=_cellrangersummary,
 			soupxrhoEst=_soupxrhoEst,
 			soupxrho=_soupxrho,
+			filterbycountncell=_filterbycountncell,
+			filterbycountpltbf=_filterbycountpltbf,
+			filterbycountpltaf=_filterbycountpltaf,
 			)
 		)

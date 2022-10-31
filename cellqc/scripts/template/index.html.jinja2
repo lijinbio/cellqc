@@ -12,38 +12,88 @@
   </head>
 
   <body>
+    <div class="result">
     {% if cellrangersummary is not none %}
-    <div class="heading">
-      <h1>CellRanger metrics summary</h1>
-    </div>
-    <div class="outer-wrapper">
-      <div class="table-wrapper">
-        {{ cellrangersummary }}
-      </div>
-    </div>
-    {% endif %}
-
-    {% if soupxrhoEst is not none %}
-    <div class="heading">
-      <h1>Soupx: estimated contamination fraction </h1>
-    </div>
-    <div class="outer-wrapper">
-      <div class="table-wrapper">
-        {{ soupxrhoEst }}
-      </div>
-    </div>
-    {% endif %}
-
-    {% for file, datauri in soupxrho.items() -%}
-    <div class="pdf">
       <div class="heading">
-        <h2> {{ file }} </h1>
+        <h1>CellRanger metrics summary</h1>
       </div>
-      <div class="iframe-wrapper">
-        <iframe src="{{ datauri }}#fitW" title="{{ file }}" width="100%" height="100%"> </iframe>
+      <div class="outer-wrapper">
+        <div class="table-wrapper">
+          {{ cellrangersummary }}
+        </div>
       </div>
+    {% endif %}
     </div>
+
+    <div class="result">
+    {% if soupxrhoEst is not none %}
+      <div class="heading">
+        <h1>Soupx: estimated contamination fraction </h1>
+      </div>
+      <div class="outer-wrapper">
+        <div class="table-wrapper">
+          {{ soupxrhoEst }}
+        </div>
+      </div>
+    {% endif %}
+    </div>
+
+    <div class="result">
+      <div class="heading">
+        <h2> Global contamination fraction estimate  </h2>
+      </div>
+    {% for file, datauri in soupxrho.items() -%}
+      <div class="pdf">
+        <div class="heading">
+          <h2> {{ file }} </h2>
+        </div>
+        <div class="iframe-wrapper">
+          <iframe src="{{ datauri }}#fitW" title="{{ file }}" width="100%" height="100%"> </iframe>
+        </div>
+      </div>
     {% endfor %}
+    </div>
+
+    <div class="result">
+    {% if filterbycountncell is not none %}
+      <div class="heading">
+        <h1> Filter cells by count </h1>
+      </div>
+      <div class="outer-wrapper">
+        <div class="table-wrapper">
+          {{ filterbycountncell }}
+        </div>
+      </div>
+    {% endif %}
+
+      <div class="heading">
+        <h2> Violin plot before filtering </h2>
+      </div>
+    {% for file, datauri in filterbycountpltbf.items() -%}
+      <div class="pdf">
+        <div class="heading">
+          <h2> {{ file }} </h2>
+        </div>
+        <div class="iframe-wrapper">
+          <iframe src="{{ datauri }}#fitW" title="{{ file }}" width="100%" height="100%"> </iframe>
+        </div>
+      </div>
+    {% endfor %}
+
+      <div class="heading">
+        <h2> Violin plot after filtering </h2>
+      </div>
+    {% for file, datauri in filterbycountpltaf.items() -%}
+      <div class="pdf">
+        <div class="heading">
+          <h2> {{ file }} </h2>
+        </div>
+        <div class="iframe-wrapper">
+          <iframe src="{{ datauri }}#fitW" title="{{ file }}" width="100%" height="100%"> </iframe>
+        </div>
+      </div>
+    {% endfor %}
+    </div>
 
   </body>
 
