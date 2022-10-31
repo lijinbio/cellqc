@@ -66,6 +66,11 @@ _filterbycountpltbf={f : data_uri_from_file(f) for f in snakemake.input.filterby
 _filterbycountpltaf={f : data_uri_from_file(f) for f in snakemake.input.filterbycountpltaf}
 
 ## DoubletFinder
+tmp=[pd.read_csv(f, sep='\t', header=0) for f in snakemake.input.doubletratio]
+_doubletratio=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
+_doubletpannviolin={f : data_uri_from_file(f) for f in snakemake.input.doubletpannviolin}
+_doublettsne={f : data_uri_from_file(f) for f in snakemake.input.doublettsne}
+_doubletumap={f : data_uri_from_file(f) for f in snakemake.input.doubletumap}
 
 ## scPred
 
@@ -80,5 +85,9 @@ with open(outfile, mode="w", encoding="utf-8") as f:
 			filterbycountncell=_filterbycountncell,
 			filterbycountpltbf=_filterbycountpltbf,
 			filterbycountpltaf=_filterbycountpltaf,
+			doubletratio=_doubletratio,
+			doubletpannviolin=_doubletpannviolin,
+			doublettsne=_doublettsne,
+			doubletumap=_doubletumap,
 			)
 		)
