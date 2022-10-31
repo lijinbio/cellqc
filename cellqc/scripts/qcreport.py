@@ -58,6 +58,10 @@ _soupxrhoEst=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
 _soupxrho={f : data_uri_from_file(f) for f in snakemake.input.soupxrho}
 
 ## Dropkick
+tmp=[pd.read_csv(f, sep='\t', header=0) for f in snakemake.input.dropkickstat]
+_dropkickstat=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
+_dropkicksummary={f : data_uri_from_file(f) for f in snakemake.input.dropkicksummary} if len(snakemake.input.dropkicksummary)>0 else None
+_dropkickscore={f : data_uri_from_file(f) for f in snakemake.input.dropkickscore} if len(snakemake.input.dropkickscore)>0 else None
 
 ## Filterbycounts
 tmp=[pd.read_csv(f'{dir}/filter_ncell.txt', sep='\t', header=0) for dir in snakemake.input.filterbycountdir]
@@ -86,6 +90,9 @@ with open(outfile, mode="w", encoding="utf-8") as f:
 			cellrangersummary=_cellrangersummary,
 			soupxrhoEst=_soupxrhoEst,
 			soupxrho=_soupxrho,
+			dropkickstat=_dropkickstat,
+			dropkicksummary=_dropkicksummary,
+			dropkickscore=_dropkickscore,
 			filterbycountncell=_filterbycountncell,
 			filterbycountpltbf=_filterbycountpltbf,
 			filterbycountpltaf=_filterbycountpltaf,

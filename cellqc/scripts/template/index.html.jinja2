@@ -55,6 +55,48 @@
     </div>
 
     <div class="result">
+    {% if dropkickstat is not none %}
+      <div class="heading">
+        <h1>Dropkick: filtering empty droplets </h1>
+      </div>
+      <div class="outer-wrapper">
+        <div class="table-wrapper">
+          {{ dropkickstat }}
+        </div>
+      </div>
+
+      <div class="heading">
+        <h2> Dropkick: QC summary </h2>
+      </div>
+    {% for file, datauri in dropkicksummary.items() -%}
+      <div class="png">
+        <div class="heading">
+          <h2> {{ file }} </h2>
+        </div>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </iframe>
+        </div>
+      </div>
+    {% endfor %}
+
+      <div class="heading">
+        <h2> Dropkick: training set and classification probability </h2>
+      </div>
+    {% for file, datauri in dropkickscore.items() -%}
+      <div class="png">
+        <div class="heading">
+          <h2> {{ file }} </h2>
+        </div>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </iframe>
+        </div>
+      </div>
+    {% endfor %}
+
+    {% endif %}
+    </div>
+
+    <div class="result">
     {% if filterbycountncell is not none %}
       <div class="heading">
         <h1> Filter cells by count </h1>
