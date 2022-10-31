@@ -60,19 +60,23 @@ _soupxrho={f : data_uri_from_file(f) for f in snakemake.input.soupxrho}
 ## Dropkick
 
 ## Filterbycounts
-tmp=[pd.read_csv(f, sep='\t', header=0) for f in snakemake.input.filterbycountncell]
+tmp=[pd.read_csv(f'{dir}/filter_ncell.txt', sep='\t', header=0) for dir in snakemake.input.filterbycountdir]
 _filterbycountncell=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
-_filterbycountpltbf={f : data_uri_from_file(f) for f in snakemake.input.filterbycountpltbf}
-_filterbycountpltaf={f : data_uri_from_file(f) for f in snakemake.input.filterbycountpltaf}
+_filterbycountpltbf={dir : data_uri_from_file(f'{dir}/feature_bf.pdf') for dir in snakemake.input.filterbycountdir}
+_filterbycountpltaf={dir : data_uri_from_file(f'{dir}/feature_af.pdf') for dir in snakemake.input.filterbycountdir}
 
 ## DoubletFinder
-tmp=[pd.read_csv(f, sep='\t', header=0) for f in snakemake.input.doubletratio]
+pK=snakemake.params.pK
+tmp=[pd.read_csv(f'{dir}/doublet_ratio.txt', sep='\t', header=0) for dir in snakemake.input.doubletfinderdir]
 _doubletratio=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
-_doubletpannviolin={f : data_uri_from_file(f) for f in snakemake.input.doubletpannviolin}
-_doublettsne={f : data_uri_from_file(f) for f in snakemake.input.doublettsne}
-_doubletumap={f : data_uri_from_file(f) for f in snakemake.input.doubletumap}
+_doubletpannviolin={dir : data_uri_from_file(f'{dir}/pANN_violin_pK{pK}.pdf') for dir in snakemake.input.doubletfinderdir}
+_doublettsne={dir : data_uri_from_file(f'{dir}/tsne_doublet_pK{pK}.pdf') for dir in snakemake.input.doubletfinderdir}
+_doubletumap={dir : data_uri_from_file(f'{dir}/umap_doublet_pK{pK}.pdf') for dir in snakemake.input.doubletfinderdir}
 
 ## scPred
+_scpredcontingency={dir : pd.read_csv(f'{dir}/contingency.txt', sep='\t', header=0).to_html() for dir in snakemake.input.scpreddir} if len(snakemake.input.scpreddir)>0 else None
+_scpredfeaturemax={dir : data_uri_from_file(f'{dir}/feature_scpred_max.png') for dir in snakemake.input.scpreddir} if len(snakemake.input.scpreddir)>0 else None
+_scpredpredictumap={dir : data_uri_from_file(f'{dir}/predict_umap.png') for dir in snakemake.input.scpreddir} if len(snakemake.input.scpreddir)>0 else None
 
 ## Render report file from a Jinja template
 outfile=snakemake.output[0]
@@ -89,5 +93,8 @@ with open(outfile, mode="w", encoding="utf-8") as f:
 			doubletpannviolin=_doubletpannviolin,
 			doublettsne=_doublettsne,
 			doubletumap=_doubletumap,
+			scpredcontingency=_scpredcontingency,
+			scpredfeaturemax=_scpredfeaturemax,
+			scpredpredictumap=_scpredpredictumap,
 			)
 		)

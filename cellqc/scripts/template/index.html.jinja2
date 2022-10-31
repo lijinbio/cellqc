@@ -150,6 +150,56 @@
     {% endfor %}
 
     </div>
+
+    <div class="result">
+    {% if scpredcontingency is not none %}
+      <div class="heading">
+        <h1> Contingency table between predicted cell types and cell clusters </h1>
+      </div>
+    {% for file, contingency in scpredcontingency.items() -%}
+      <div class="contingency">
+        <div class="heading">
+          <h2> {{ file }} </h2>
+        </div>
+        <div class="outer-wrapper">
+          <div class="table-wrapper">
+            {{ contingency }}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+
+      <div class="heading">
+        <h2> Max classification probabilities </h2>
+      </div>
+    {% for file, datauri in scpredfeaturemax.items() -%}
+      <div class="png">
+        <div class="heading">
+          <h2> {{ file }} </h2>
+        </div>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </iframe>
+        </div>
+      </div>
+    {% endfor %}
+
+      <div class="heading">
+        <h2> Predicted cell types </h2>
+      </div>
+    {% for file, datauri in scpredpredictumap.items() -%}
+      <div class="png">
+        <div class="heading">
+          <h2> {{ file }} </h2>
+        </div>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </iframe>
+        </div>
+      </div>
+    {% endfor %}
+
+    {% endif %}
+    </div>
+
   </body>
 
 </html>

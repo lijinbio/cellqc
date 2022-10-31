@@ -70,7 +70,25 @@ div.pdf {
 	display: inline-block;
 }
 
+div.png {
+	padding: 1px;
+	display: inline-block;
+}
+
+div.contingency {
+	padding: 1px;
+	display: inline-block;
+}
+
 div.iframe-wrapper {
+	position: static;
+	padding: 1px;
+	width: 420px;
+	height: 420px;
+	display: block;
+}
+
+div.img-wrapper {
 	position: static;
 	padding: 1px;
 	width: 420px;
