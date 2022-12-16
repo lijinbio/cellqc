@@ -6,21 +6,18 @@ Cellqc standardizes the qualiy control of single-cell RNA-Seq (scRNA) data to re
 
 ## Installation
 
-Cellqc depends on a number of R and Python packages, so please install the dependencies before installing cellqc. It is encouraged to use Conda to install dependencies as much as possible. E.g.,
+It is easy to install cellqc via [conda](https://docs.conda.io/en/latest/miniconda.html) at https://anaconda.org/bioconda/cellqc. To use the full function of cellqc, please also install several dependencies outside conda. It is encouraged to use the C++ implementation [mamba](https://github.com/mamba-org/mamba) to speed up the installation. E.g.,
 
 ```
-$ conda create -y -n cellqc
-$ conda activate cellqc
-$ conda config --add channels defaults --add channels bioconda --add channels conda-forge
-$ conda install -y mamba
-$ mamba install -y bioconductor-dropletutils r-seurat r-seuratobject r-dplyr r-ggplot2 'r-soupx>=1.6.2' r-scpred r-remotes scanpy pygraphviz snakemake click
-$ Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk'))"
-$ mamba install -y numpy=1.21 # bug fix to install dropkick
-$ mamba install -y anndata=0.7.8 # Fix .h5ad version
-$ pip install dropkick
+conda create -n cellqc cellqc
+conda activate cellqc
+Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk'))"
+conda install anndata=0.7.8
+conda install numpy=1.21 # by dropkick
+pip install dropkick
 ```
 
-where dependent software are below.
+Dependent software are summarized below.
 
 | Software | URL |
 |-------|-------|
@@ -33,16 +30,6 @@ where dependent software are below.
 | Snakemake | https://github.com/snakemake/snakemake |
 | Scanpy | https://scanpy.readthedocs.io/en/stable |
 | dropkick | https://github.com/KenLauLab/dropkick |
-
-After installing dependencies, to install the pipeline rules globally, this package can be installed via `pip`. Namely,
-
-```
-$ git clone https://github.com/lijinbio/cellqc.git
-$ cd cellqc
-$ pip install .
-```
-
-An example Bash script to wrap up above commands can be found at `dep.sh`.
 
 To test the installation, simply run
 
@@ -146,26 +133,15 @@ scpred:
 
 ```
 $ cat sample.txt
-sample	cellranger	nreaction
-AMD1	/path/to/cellqc_test_data/AMD1	1
-AMD2	/path/to/cellqc_test_data/AMD2	1
+sample	cellranger
+AMD1	/path/to/cellqc_test_data/AMD1
+AMD2	/path/to/cellqc_test_data/AMD2
 ```
 
 Below command is to run the pipeline by the installed entrypoint `cellqc`.
 
 ```
 $ cellqc -c config.yaml
-```
-
-Alternatively, the pipeline rules can be copied to a local directory, and run manually under the local directory using `snakemake`.
-
-```
-$ git clone https://github.com/lijinbio/cellqc.git
-$ cp -R cellqc/cellqc /path/to/local
-# edit config.yaml and sample.txt under the local directory
-$ snakemake -j 4 --configfile config.yaml
-$ snakemake -j 4 --configfile config.yaml --report report.html
-$ snakemake -j 4 --configfile config.yaml --dag | tee dag.dot | dot -Tpdf > dag.pdf
 ```
 
 A directed acyclic graph (DAG) of jobs will be generated. For example,

@@ -16,9 +16,9 @@ sample=samples.txt
 config=config.yaml
 
 cat > "$sample" <<EOF
-sample	cellranger	nreaction
-AMD1	$outdir/cellqc_test_data/AMD1	1
-AMD2	$outdir/cellqc_test_data/AMD2	1
+sample	cellranger
+AMD1	$outdir/cellqc_test_data/AMD1
+AMD2	$outdir/cellqc_test_data/AMD2
 EOF
 
 cat > "$config" <<EOF
