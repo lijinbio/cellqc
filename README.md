@@ -9,11 +9,10 @@ Cellqc standardizes the qualiy control of single-cell RNA-Seq (scRNA) data to re
 It is easy to install cellqc via [conda](https://docs.conda.io/en/latest/miniconda.html) at https://anaconda.org/bioconda/cellqc. To use the full function of cellqc, please also install several dependencies outside conda. It is encouraged to use the C++ implementation [mamba](https://github.com/mamba-org/mamba) to speed up the installation. E.g.,
 
 ```
-conda create -n cellqc cellqc
-conda activate cellqc
+mamba create -n cellqc cellqc
+mamba activate cellqc
 Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk'))"
-conda install anndata=0.7.8
-conda install numpy=1.21 # by dropkick
+mamba install numpy=1.21 # by dropkick
 pip install dropkick
 ```
 
