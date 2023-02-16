@@ -49,7 +49,6 @@ cellqc -h
 - A configuration file is in the YAML format. It is optional. The default parameters can be used as below. See the next section for the inspection of configuration.
 
 ```
-samples: samples.txt
 dropkick:
   skip: false
   method: multiotsu
@@ -74,7 +73,7 @@ The configuration file is in a YAML format. An example configuration can be foun
 
 1. samples
 
-This is the record of the input sample file (e.g., `samples.txt`).
+This is the path of the input sample file (e.g., `samples.txt`).
 
 2. dropkick
 
