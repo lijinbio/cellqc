@@ -1,12 +1,16 @@
 from snakemake.utils import validate
 import pandas as pd
 import yaml
-import os
-import sys
 from pathlib import Path
 
 samplefile, outdir, nowtimestr=config['samplefile'], config['outdir'], config['nowtimestr']
 config['samples']=samplefile
+
+wildcard_constraints:
+	sample="[^/]+",
+
+if config['configfile']=='None':
+	config['configfile']=None
 
 # Default parameters
 if 'dropkick' not in config:
@@ -37,14 +41,14 @@ if 'scpred' not in config:
 		'threshold': 0.9,
 	}
 
-if config['configfile']!='None':
+if config['configfile']:
 	configdir=Path(config['configfile']).parent
 	config['scpred']['reference']=str(configdir / config['scpred']['reference'])
 sampledir=str(Path(config['samples']).parent)
 
-validate(config, schema='schemas/config.schema.yaml')
+validate(config, schema='../schemas/config.schema.yaml')
 samples=pd.read_table(config['samples']).set_index('sample', drop=False)
-validate(samples, 'schemas/samples.schema.yaml')
+validate(samples, '../schemas/samples.schema.yaml')
 
 # debug parameters
 nowtimestr=config['nowtimestr']

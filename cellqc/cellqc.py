@@ -43,7 +43,7 @@ def main(configfile, rule, outdir, numthreads, dagonly, reportonly, summaryonly,
 	"""
 cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
 
-SAMPLEFILE is a sample file for samples in a headed tab-delimited file of the below format.
+SAMPLEFILE is a headed tab-delimited sample file for samples in the below format.
 
 \b
 ```
@@ -52,8 +52,14 @@ sample<TAB>cellranger[<TAB>nreaction]
 
 \b
 Example:
-  cellqc -n -- samples.txt # save default parameters to outdir/config.yaml
-  cellqc -c config.yaml -t 8 -- samples.txt
+  outdir=$(mktemp -d -u)
+  cellqc -d "$outdir" -t 8 -n -- samples.txt # save default parameters to outdir/config.yaml
+  ## copy from outdir/config.yaml and edit config.yaml
+  cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt
+
+\b
+Note:
+  1. The directory of the `cellranger` in SAMPLEFILE should exist.
 
 \b
 Date: 2023/02/15

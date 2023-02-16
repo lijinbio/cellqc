@@ -9,6 +9,7 @@ Cellqc standardizes the qualiy control of single-cell RNA-Seq (scRNA) data to re
 It is easy to install cellqc via [conda](https://docs.conda.io/en/latest/miniconda.html) at https://anaconda.org/bioconda/cellqc. To use the full function of cellqc, please also install several dependencies outside conda. It is encouraged to use the C++ implementation [mamba](https://github.com/mamba-org/mamba) to speed up the installation. E.g.,
 
 ```
+conda config --add channels defaults --add channels bioconda --add channels conda-forge
 mamba create -n cellqc cellqc
 mamba activate cellqc
 Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk'))"
@@ -33,12 +34,39 @@ Dependent software are summarized below.
 To test the installation, simply run
 
 ```
-$ cellqc -h
+cellqc -h
 ```
 
 ## Run the pipeline
 
-There are two ways to run the pipeline. One is to call the global rule by the installed `cellqc`, and the other is to copy a local rule and run the pipeline manually by `snakemake`. Both ways reqiure a configuration file in the YAML format for pipeline parameters, as well as a sample file for input Cell Ranger directories. See an example below.
+`Cellqc` requires a sample file for sample information and an optional configuration file for pipeline parameters.
+
+- The sample file (e.g., `samples.txt`) is a tab-delimited file with headers: `sample`, `cellranger`, and/or `nreaction`.
+    - The `sample` column is the sample ID per sample.
+    - The `cellranger` is the Cell Ranger output directory. See [Cell Ranger Outputs](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/output/gex-outputs) for an example directory.
+    - The optional third column `nreaction` is the number of reactions in the library preparation, which is useful to infer expected doublets for a sample with a Cell Ranger analysis using combined raw reads from multiple reactions. If the `nreaction` column is not specified in the sample file, the default 1 reaction is used for all samples.
+
+- A configuration file is in the YAML format. It is optional. The default parameters can be used as below. See the next section for the inspection of configuration.
+
+```
+samples: samples.txt
+dropkick:
+  skip: false
+  method: multiotsu
+  numthreads: 1
+filterbycount:
+  mincount: 500
+  minfeature: 300
+  mito: 10
+doubletfinder:
+  findpK: false
+  numthreads: 5
+  pK: 0.01
+scpred:
+  skip: true
+  reference: /path_to_reference/scPred_trainmodel_RNA_svmRadialWeights_scpred.rds
+  threshold: 0.9
+```
 
 ### Inspection of configuration
 
@@ -46,11 +74,11 @@ The configuration file is in a YAML format. An example configuration can be foun
 
 1. samples
 
-This is a sample file (e.g., `samples.txt`) tab-delimited with headers: `sample`, `cellranger`, and/or `nreaction`. The `sample` column is the sample ID per sample, and the `cellranger` is its Cell Ranger output directory. The third column `nreaction` is the number of reactions in the library preparation, which is useful to infer expected doublets for a sample with a Cell Ranger analysis using combined raw reads from multiple reactions. If the `nreaction` column is not specified in the sample file, the default 1 reaction is used for all samples.
+This is the record of the input sample file (e.g., `samples.txt`).
 
 2. dropkick
 
-This section defines two parameters for empty droplet removal by dropkick.
+This section defines parameters for empty droplet removal by dropkick.
 
 | Parameter | Description |
 |-------|-------|
@@ -90,7 +118,7 @@ A pre-trained classifier for cell-type annotation by scPred.
 
 ### Result files
 
-Three result files are generated under a `result` directory. `result/*.h5seurat` and `result/*.h5ad` files are count matrices after processing with QC metrics such as "pANN" for proportion of artificial nearest neighbors, and/or "scpred_prediction" for predicted cell type. A report file `result/qc_report.html` is a summary of QC metrics.
+Three result files are generated under a `result` subdirectory. `result/*.h5seurat` and `result/*.h5ad` files are count matrices after processing with QC metrics such as "pANN" for proportion of artificial nearest neighbors, and/or "scpred_prediction" for predicted cell type. A report file `result/qc_report.html` is a summary of QC metrics.
 
 ### An example
 
@@ -98,49 +126,19 @@ This example demonstrates the pipeline on two AMD samples. The test data consist
 
 https://bcm.box.com/s/nnlmgxh8avagje93cih20g1dsxx14if4
 
-By feeding the file locations, below is an example configuration file `config.yaml` and a sample file `sample.txt`.
+After feeding the file locations, a sample file (e.g., `samples.txt`) looks like below.
 
-```
-$ cat config.yaml
-# samples with Cell Ranger output directories
-samples: /path/to/samples.txt
-
-## configuration for dropkick
-dropkick:
-  skip: true
-  method: multiotsu
-  numthreads: 1
-
-## Filter cells by nCount, nFeature, and mito
-filterbycount:
-  mincount: 500
-  minfeature: 300
-  mito: 5
-
-## configuration for DoubletFinder
-doubletfinder:
-  findpK: false
-  numthreads: 5
-  pK: 0.005
-
-## configuration for scPred
-scpred:
-  skip: false
-  reference: /path/to/scPred_reference.rds
-  threshold: 0.9
-```
-
-```
-$ cat sample.txt
+```samples.txt
 sample	cellranger
-AMD1	/path/to/cellqc_test_data/AMD1
-AMD2	/path/to/cellqc_test_data/AMD2
+AMD1	/path/to/cellranger/AMD1/outs
+AMD2	/path/to/cellranger/AMD2/outs
 ```
 
 Below command is to run the pipeline by the installed entrypoint `cellqc`.
 
 ```
-$ cellqc -c config.yaml
+cellqc -d "$outdir" -t 8 -- samples.txt # with default parameters
+cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt # by customized parameters in config.yaml
 ```
 
 A directed acyclic graph (DAG) of jobs will be generated. For example,

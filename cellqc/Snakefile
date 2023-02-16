@@ -1,37 +1,30 @@
 from snakemake.utils import min_version
 min_version("7.0")
-import os
 
-include: "config.smk"
-
-def get_cellranger(wildcards):
-    return os.path.join(sampledir, samples.loc[wildcards.sample, 'cellranger'])
-
-def get_rawh5(wildcards):
-    x=samples.loc[wildcards.sample, 'cellranger']
-    return os.path.join(sampledir, f'{x}/raw_feature_bc_matrix.h5')
+include: "rules/config.smk"
 
 rule all:
-    input:
-        expand(
-            [
-                "result/{sample}.h5ad",
-            ],
-            sample=samples["sample"].tolist(),
-        ),
-        "result/qc_report.html",
+  input:
+    expand(
+    [
+      "result/{sample}.h5ad",
+    ],
+    sample=samples["sample"].tolist(),
+    ),
+    "result/qc_report.html",
 
+include: "rules/common.smk"
 include: "rules/soupx.smk"
 
 if not config["dropkick"]["skip"]:
-    include: "rules/dropkick.smk"
-    include: "rules/h5subset.smk"
+  include: "rules/dropkick.smk"
+  include: "rules/h5subset.smk"
 
 include: "rules/filterbycount.smk"
 include: "rules/doubletfinder.smk"
 
 if not config["scpred"]["skip"]:
-    include: "rules/scpred.smk"
+  include: "rules/scpred.smk"
 
 include: "rules/h5seurat2h5ad.smk"
 include: "rules/qcreport.smk"
