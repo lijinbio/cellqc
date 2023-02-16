@@ -1,15 +1,14 @@
-from snakemake.utils import validate, min_version
-min_version("7.0")
+from snakemake.utils import validate
 import pandas as pd
 import yaml
 import os
 import sys
 from pathlib import Path
 
-# Default parameters
-if 'samples' not in config:
-	config['samples']='samples.txt'
+samplefile, outdir, nowtimestr=config['samplefile'], config['outdir'], config['nowtimestr']
+config['samples']=samplefile
 
+# Default parameters
 if 'dropkick' not in config:
 	config['dropkick']={
 		'skip': False,
@@ -40,21 +39,14 @@ if 'scpred' not in config:
 
 if config['configfile']!='None':
 	configdir=Path(config['configfile']).parent
-	config['samples']=str(configdir / config['samples'])
 	config['scpred']['reference']=str(configdir / config['scpred']['reference'])
-validate(config, schema='schemas/config.schema.yaml')
-
-if not Path(config['samples']).exists():
-	print(f"Error: {config['samples']} is not found.")
-	sys.exit(-1)
 sampledir=str(Path(config['samples']).parent)
 
+validate(config, schema='schemas/config.schema.yaml')
 samples=pd.read_table(config['samples']).set_index('sample', drop=False)
 validate(samples, 'schemas/samples.schema.yaml')
-
 
 # debug parameters
 nowtimestr=config['nowtimestr']
 with open(f"config_{nowtimestr}.yaml", 'w') as f:
 	yaml.dump(config, f, sort_keys=False)
-

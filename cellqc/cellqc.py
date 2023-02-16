@@ -37,24 +37,26 @@ CONTEXT_SETTINGS=dict(help_option_names=['-h', '--help'])
 @click.option('-R', '--reportonly', is_flag=True, help='Generate the report only. Useful to update report.html.')
 @click.option('-S', '--summaryonly', is_flag=True, help='Generate the detailed summary only. Useful to update summary.txt.')
 @click.option('-n', '--dryrun', is_flag=True, help='Dry-run.')
-@click.argument('samplefile', type=click.Path(exists=False, resolve_path=True), help='Sample file.')
+@click.argument('samplefile', type=click.Path(exists=False, resolve_path=True))
 @click.version_option()
 def main(configfile, rule, outdir, numthreads, dagonly, reportonly, summaryonly, dryrun, samplefile):
 	"""
 cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
 
-SAMPLEFILE is a sample file for samples. E.g.,
+SAMPLEFILE is a sample file for samples in a headed tab-delimited file of the below format.
 
+\b
 ```
+sample<TAB>cellranger[<TAB>nreaction]
 ```
 
 \b
 Example:
-  cellqc -n # save default parameters to outdir/config.yaml
-  cellqc -c config.yaml
+  cellqc -n -- samples.txt # save default parameters to outdir/config.yaml
+  cellqc -c config.yaml -t 8 -- samples.txt
 
 \b
-Date: 2022/10/27
+Date: 2023/02/15
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	nowtimestr=datetime.datetime.now().strftime('%y%m%d_%H%M%S')
@@ -67,7 +69,7 @@ Authors: Jin Li <lijin.abc@gmail.com>
 		f"-s {absdir}/Snakefile",
 		f"-d {outdir}",
 		f"-j {numthreads}",
-		f"-C configfile='{configfile}' nowtimestr='{nowtimestr}'",
+		f"-C samplefile='{samplefile}' outdir='{outdir}' configfile='{configfile}' nowtimestr='{nowtimestr}'",
 		]
 	if rule:
 		cmdstr+=[f"-R {rule}"]
