@@ -71,11 +71,7 @@ scpred:
 
 The configuration file is in a YAML format. An example configuration can be found at the example directory. 
 
-1. samples
-
-This is the path of the input sample file (e.g., `samples.txt`).
-
-2. dropkick
+1. dropkick
 
 This section defines parameters for empty droplet removal by dropkick.
 
@@ -85,7 +81,7 @@ This section defines parameters for empty droplet removal by dropkick.
 | dropkick.method | The thresholding method for labeling the training data for true cells, such as multiotsu, otsu, li, or mean. |
 | dropkick.numthreads | Number of threads. Dropkick will use significant memory. One thread is suggested for this step. |
 
-3. filterbycount
+2. filterbycount
 
 To filter cells by nCount, nFeature, and percentage of mitochondria reads.
 
@@ -95,7 +91,7 @@ To filter cells by nCount, nFeature, and percentage of mitochondria reads.
 | filterbycount.minfeature | Minimum features for a cell. |
 | filterbycount.mito | Maximum percentage of mitocondria transcripts. |
 
-4. doubletfinder
+3. doubletfinder
 
 This section includes three parameters for doublet removal by DoubletFinder.
 
@@ -105,7 +101,7 @@ This section includes three parameters for doublet removal by DoubletFinder.
 | doubletfinder.numthreads | Number of threads. |
 | doubletfinder.pK | A preset neighbor size (pK). Will be used if `doubletfinder.findpK=false`.|
 
-5. scpred
+4. scpred
 
 A pre-trained classifier for cell-type annotation by scPred.
 
