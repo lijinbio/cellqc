@@ -37,10 +37,16 @@ CONTEXT_SETTINGS=dict(help_option_names=['-h', '--help'])
 @click.option('-R', '--reportonly', is_flag=True, help='Generate the report only. Useful to update report.html.')
 @click.option('-S', '--summaryonly', is_flag=True, help='Generate the detailed summary only. Useful to update summary.txt.')
 @click.option('-n', '--dryrun', is_flag=True, help='Dry-run.')
+@click.argument('samplefile', type=click.Path(exists=False, resolve_path=True), help='Sample file.')
 @click.version_option()
-def main(configfile, rule, outdir, numthreads, dagonly, reportonly, summaryonly, dryrun):
+def main(configfile, rule, outdir, numthreads, dagonly, reportonly, summaryonly, dryrun, samplefile):
 	"""
 cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
+
+SAMPLEFILE is a sample file for samples. E.g.,
+
+```
+```
 
 \b
 Example:
