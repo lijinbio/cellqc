@@ -34,12 +34,11 @@ CONTEXT_SETTINGS=dict(help_option_names=['-h', '--help'])
 @click.option('-r', '--rule', type=click.STRING, help='Force to re-run a rule and its downstream. Available: soupx, dropkick, h5subset, doubletfinder.')
 @click.option('-t', '--numthreads', type=click.INT, default=4, help='Number of threads. (default: 4)')
 @click.option('-D', '--dagonly', is_flag=True, help='Generate the DAG of jobs only. Useful to update dag.pdf.')
-@click.option('-R', '--reportonly', is_flag=True, help='Generate the report only. Useful to update report.html.')
 @click.option('-S', '--summaryonly', is_flag=True, help='Generate the detailed summary only. Useful to update summary.txt.')
 @click.option('-n', '--dryrun', is_flag=True, help='Dry-run.')
 @click.argument('samplefile', type=click.Path(exists=False, resolve_path=True))
 @click.version_option()
-def main(configfile, rule, outdir, numthreads, dagonly, reportonly, summaryonly, dryrun, samplefile):
+def main(configfile, rule, outdir, numthreads, dagonly, summaryonly, dryrun, samplefile):
 	"""
 cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
 
@@ -91,9 +90,6 @@ Authors: Jin Li <lijin.abc@gmail.com>
 			f"-r -p --debug-dag",
 			f"--stats Snakefile_{nowtimestr}.stats",
 			]
-		cmdreport=cmdstr+[
-			f"--report report_{nowtimestr}.html",
-			]
 		cmddag=cmdstr+[
 			f"--dag | tee dag_{nowtimestr}.dot | dot -Tpdf > dag_{nowtimestr}.pdf",
 			]
@@ -103,14 +99,11 @@ Authors: Jin Li <lijin.abc@gmail.com>
 
 		if dagonly:
 			runcmd(cmddag)
-		elif reportonly:
-			runcmd(cmdreport)
 		elif summaryonly:
 			runcmd(cmdsummary)
 		else:
 			runcmd(cmdrun)
 			runcmd(cmddag)
-			runcmd(cmdreport)
 			runcmd(cmdsummary)
 
 	return 0

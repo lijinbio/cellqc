@@ -2,18 +2,9 @@ rule filterbycount:
   input:
     "soupx/{sample}.h5" if config["dropkick"]["skip"] else "h5subset/{sample}.h5",
   output:
-    report(
-      directory("filterbycount/{sample}"),
-      patterns=["{name}.pdf"],
-      caption="../report/filterbycount.rst",
-      category="Step 3: Filter cells by counts",
-    ),
+    directory("filterbycount/{sample}"),
     "filterbycount/{sample}.h5seurat",
-    report(
-      "filterbycount/{sample}/filter_ncell.txt",
-      caption="../report/filterbycount.rst",
-      category="Step 3: Filter cells by counts",
-    ),
+    "filterbycount/{sample}/filter_ncell.txt",
   params:
     mincount=config["filterbycount"]["mincount"],
     minfeature=config["filterbycount"]["minfeature"],
