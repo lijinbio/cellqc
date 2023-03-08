@@ -29,6 +29,7 @@ if 'filterbycount' not in config:
 
 if 'doubletfinder' not in config:
 	config['doubletfinder']={
+		'skip': False,
 		'findpK': False,
 		'numthreads': 5,
 		'pK': 0.01,

@@ -1,6 +1,6 @@
 rule scpred:
   input:
-    "doubletfinder/{sample}.h5seurat",
+    "doubletfinder/{sample}.h5seurat" if not config['doubletfinder']['skip'] else "filterbycount/{sample}.h5seurat",
   output:
     report(
       directory("scpred/{sample}"),
