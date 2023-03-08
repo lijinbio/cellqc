@@ -59,6 +59,7 @@ filterbycount:
   minfeature: 300
   mito: 10
 doubletfinder:
+  skip: false
   findpK: false
   numthreads: 5
   pK: 0.01
@@ -98,9 +99,10 @@ This section includes three parameters for doublet removal by DoubletFinder.
 
 | Parameter | Description |
 |-------|-------|
+| doubletfinder.skip | Skip doublet detection and removal. |
 | doubletfinder.findpK | To estimate the neighbor size (pK) by mean-variance bimodality coefficients if `true`. If set `false`, skip the estimation and use the preset pK value. |
 | doubletfinder.numthreads | Number of threads. |
-| doubletfinder.pK | A preset neighbor size (pK). Will be used if `doubletfinder.findpK=false`.|
+| doubletfinder.pK | A preset neighbor size (pK). Will be used if `doubletfinder.findpK=false`. |
 
 4. scpred
 

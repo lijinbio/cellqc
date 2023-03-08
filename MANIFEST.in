@@ -1,7 +1,6 @@
 include *.md LICENSE
 include cellqc/Snakefile
 include cellqc/config.smk
-graft cellqc/report
 graft cellqc/rules
 graft cellqc/schemas
 graft cellqc/scripts
