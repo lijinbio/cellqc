@@ -3,8 +3,8 @@ rule doubletfinder:
     "filterbycount/{sample}.h5seurat",
   output:
     directory("doubletfinder/{sample}"),
-    "doubletfinder/{sample}/doublet_ratio.txt",
     "result/{sample}.h5seurat" if config["scpred"]["skip"] else "doubletfinder/{sample}.h5seurat",
+    "doubletfinder/{sample}/doublet_ratio.txt",
   params:
     findpK=config["doubletfinder"]["findpK"],
     numthreads=config["doubletfinder"]["numthreads"],

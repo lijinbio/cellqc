@@ -8,6 +8,7 @@ suppressPackageStartupMessages(library(ggplot2))
 
 infile=snakemake@input[[1]]
 outdir=snakemake@output[[1]]
+outfile=snakemake@output[[2]]
 statfile=snakemake@output[[3]]
 sampleid=snakemake@params[['sampleid']]
 
@@ -133,4 +134,4 @@ utils::write.table(
 
 res=subset(res, cells=rownames(res@meta.data)[res@meta.data[, group]=='Singlet'])
 x=CreateSeuratObject(counts=res[['RNA']]@counts, meta.data=res@meta.data)
-SaveH5Seurat(x, file=snakemake@output[[2]])
+SaveH5Seurat(x, file=outfile)
