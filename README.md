@@ -15,6 +15,7 @@ mamba activate cellqc
 Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk'))"
 mamba install numpy=1.21 # by dropkick
 pip install dropkick
+pip install -U cellqc # to install the latest version
 ```
 
 Dependent software are summarized below.
