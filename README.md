@@ -12,8 +12,8 @@ It is easy to install cellqc via [conda](https://docs.conda.io/en/latest/minicon
 conda config --add channels defaults --add channels bioconda --add channels conda-forge
 mamba create -n cellqc cellqc
 mamba activate cellqc
-Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk'))"
-mamba install numpy=1.21 # by dropkick
+Rscript -e "remotes::install_github(c('chris-mcginnis-ucsf/DoubletFinder', 'mojaveazure/seurat-disk', 'immunogenomics/harmony', 'powellgenomicslab/scPred'))"
+mamba install numpy=1.21 scanpy=1.9.1 matplotlib=3.6 anndata=0.7.8 # by dropkick
 pip install dropkick
 pip install -U cellqc # to install the latest version
 ```
