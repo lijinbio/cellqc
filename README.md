@@ -113,7 +113,7 @@ A pre-trained classifier for cell-type annotation by scPred.
 
 ### Result files
 
-Three result files are generated under a `result` subdirectory. `result/*.h5seurat` and `result/*.h5ad` files are count matrices after processing with QC metrics such as "pANN" for proportion of artificial nearest neighbors, and/or "scpred_prediction" for predicted cell type. A report file `result/qc_report.html` is a summary of QC metrics.
+Three result files are generated under a `result` subdirectory. `result/*.h5seurat` and `result/*.h5ad` files are count matrices after processing with QC metrics such as "pANN" for proportion of artificial nearest neighbors, and/or "scpred_prediction" for predicted cell type. A report file `result/report.html` is a summary of QC metrics.
 
 ### An example
 

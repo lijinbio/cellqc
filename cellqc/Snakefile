@@ -11,7 +11,7 @@ rule all:
     ],
     sample=samples["sample"].tolist(),
     ),
-    "result/qc_report.html",
+    "result/report.html",
 
 include: "rules/common.smk"
 
