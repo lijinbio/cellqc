@@ -9,7 +9,7 @@ rule qcreport:
     doubletfinderdir=expand(["doubletfinder/{sample}"], sample=samples["sample"].tolist() if not config["doubletfinder"]["skip"] else []),
     scpreddir=expand(["scpred/{sample}"], sample=samples["sample"].tolist() if not config["scpred"]["skip"] else []),
   output:
-    "result/qc_report.html",
+    "result/report.html",
   params:
     samples=samples,
     sampledir=sampledir,
