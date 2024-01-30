@@ -13,7 +13,7 @@ elif f.endswith('.h5'):
 	x=sc.read_10x_h5(f)
 elif f.endswith('.h5ad'):
 	x=sc.read(f)
-x.var_names_make_unique()
+x.var_names_make_unique(join='.')
 print(vars(x))
 
 import dropkick as dk

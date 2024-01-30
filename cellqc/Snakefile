@@ -8,6 +8,7 @@ rule all:
     expand(
     [
       "result/{sample}.h5ad",
+      "postproc/{sample}.h5ad",
     ],
     sample=samples["sample"].tolist(),
     ),
@@ -31,3 +32,4 @@ if not config["scpred"]["skip"]:
 
 include: "rules/h5seurat2h5ad.smk"
 include: "rules/qcreport.smk"
+include: "rules/postproc.smk"
