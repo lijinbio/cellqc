@@ -60,6 +60,5 @@ validate(samples, '../schemas/samples.schema.yaml')
 
 # debug parameters
 print(json.dumps(config, indent=4))
-nowtimestr=config['nowtimestr']
 with open(f"config_{nowtimestr}.yaml", 'w') as f:
 	yaml.dump(config, f, sort_keys=False)
