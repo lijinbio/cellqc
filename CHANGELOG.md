@@ -1,6 +1,7 @@
 # v0.0.7 - Jan 29, 2024
 
 - Bug fix: Updated DoubletFinder with modified function names.
+- Added "-D|--define" to support defining an individual sample without a SAMPLEFILE.
 
 # v0.0.6 - Mar 8, 2023
 
