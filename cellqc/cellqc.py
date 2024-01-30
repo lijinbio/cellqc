@@ -7,6 +7,7 @@ import datetime
 import shutil
 import subprocess
 import os
+import pandas as pd
 from pathlib import Path
 
 def runcmd(cmdstr):
@@ -33,9 +34,10 @@ CONTEXT_SETTINGS=dict(help_option_names=['-h', '--help'])
 @click.option('-c', '--configfile', type=click.Path(exists=False, resolve_path=True), help='Configuration file in the YAML format.')
 @click.option('-t', '--numthreads', type=click.INT, default=4, show_default=True, help='Number of threads.')
 @click.option('-n', '--dryrun', is_flag=True, help='Dry-run.')
-@click.argument('samplefile', type=click.Path(exists=False, resolve_path=True))
+@click.option('-D', '--define', type=click.STRING, multiple=True, help='Define KEY=VALUE pairs.')
+@click.argument('samplefile', type=click.Path(exists=False, resolve_path=True), required=False)
 @click.version_option()
-def main(configfile, outdir, numthreads, dryrun, samplefile):
+def main(configfile, outdir, numthreads, dryrun, define, samplefile):
 	"""
 cellqc: a quality control pipeline of single-cell RNA-Seq data.
 
@@ -54,17 +56,41 @@ Example:
   cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt
 
 \b
-Note:
-  1. Please refer to the usage in the short tutorial available at https://github.com/lijinbio/cellqc.
+  ## To overwrite samplefile by -D|--define
+  define=(
+  sample:=:BCM_22_0769_RNA_fovea
+  cellranger:=:/storage/chenlab/Users/jinli/wkfl/atlashumanprj/application/HCA/Retina/preproc/fixversion/v7.0.1/cellrangercount/BCM_22_0769_RNA_fovea/BCM_22_0769_RNA_fovea/outs
+  nreaction:=:1
+  )
+  cellqc -d "$outdir" -t 8 -c config.yaml $(basharr2cmdopts.sh -o -D -- "${define[@]}") 
 
 \b
-Date: 2024/01/29
+Note:
+  1. Please refer to the usage in the short tutorial available at https://github.com/lijinbio/cellqc.
+  2. The "-D|--define" option can be utilized to define an individual sample by overwriting the SAMPLEFILE.
+
+\b
+Date: 2024/01/30
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	nowtimestr=datetime.datetime.now().strftime('%y%m%d_%H%M%S')
 	Path(outdir).mkdir(parents=True, exist_ok=True)
 	absdir=Path(__file__).parent
 	os.chdir(outdir)
+
+	if define: # overwrite samplefile
+		sampleconfig={}
+		for kv in define:
+			m=re.match(r"^(\w+):=:(\S+)$", kv)
+			if m:
+				key, value=m.groups()
+				sampleconfig[key]=value
+			else:
+				print(f"Warning: {kv} not recognized.")
+
+		if len(sampleconfig)>0: # overwrite the sample file
+			samplefile=f"{outdir}/samples_{nowtimestr}.txt"
+			pd.DataFrame([sampleconfig]).to_csv(samplefile, sep='\t', index=False)
 
 	cmdstr=[
 		f"snakemake",
