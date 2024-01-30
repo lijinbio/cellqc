@@ -29,20 +29,17 @@ def runcmd(cmdstr):
 
 CONTEXT_SETTINGS=dict(help_option_names=['-h', '--help'])
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('-d', '--outdir', type=click.Path(), default='.', help='Outdir. (default: ".")')
+@click.option('-d', '--outdir', type=click.Path(resolve_path=True), default='.', show_default=True, help='Outdir.')
 @click.option('-c', '--configfile', type=click.Path(exists=False, resolve_path=True), help='Configuration file in the YAML format.')
-@click.option('-r', '--rule', type=click.STRING, help='Force to re-run a rule and its downstream. Available: soupx, dropkick, h5subset, doubletfinder.')
-@click.option('-t', '--numthreads', type=click.INT, default=4, help='Number of threads. (default: 4)')
-@click.option('-D', '--dagonly', is_flag=True, help='Generate the DAG of jobs only. Useful to update dag.pdf.')
-@click.option('-S', '--summaryonly', is_flag=True, help='Generate the detailed summary only. Useful to update summary.txt.')
+@click.option('-t', '--numthreads', type=click.INT, default=4, show_default=True, help='Number of threads.')
 @click.option('-n', '--dryrun', is_flag=True, help='Dry-run.')
 @click.argument('samplefile', type=click.Path(exists=False, resolve_path=True))
 @click.version_option()
-def main(configfile, rule, outdir, numthreads, dagonly, summaryonly, dryrun, samplefile):
+def main(configfile, outdir, numthreads, dryrun, samplefile):
 	"""
-cellqc: standardized quality control pipeline of single-cell RNA-Seq data.
+cellqc: a quality control pipeline of single-cell RNA-Seq data.
 
-SAMPLEFILE is a headed tab-delimited sample file for samples in the below format.
+SAMPLEFILE is a tab-delimited file with headers, providing information for samples in the following format.
 
 \b
 ```
@@ -58,10 +55,10 @@ Example:
 
 \b
 Note:
-  1. The directory of the `cellranger` in SAMPLEFILE should exist.
+  1. Please refer to the usage in the short tutorial available at https://github.com/lijinbio/cellqc.
 
 \b
-Date: 2023/02/15
+Date: 2024/01/29
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	nowtimestr=datetime.datetime.now().strftime('%y%m%d_%H%M%S')
@@ -76,8 +73,7 @@ Authors: Jin Li <lijin.abc@gmail.com>
 		f"-j {numthreads}",
 		f"-C samplefile='{samplefile}' outdir='{outdir}' configfile='{configfile}' nowtimestr='{nowtimestr}'",
 		]
-	if rule:
-		cmdstr+=[f"-R {rule}"]
+
 	if configfile:
 		cmdstr+=[f"--configfile {configfile}"]
 
@@ -90,21 +86,7 @@ Authors: Jin Li <lijin.abc@gmail.com>
 			f"-r -p --debug-dag",
 			f"--stats Snakefile_{nowtimestr}.stats",
 			]
-		cmddag=cmdstr+[
-			f"--dag | tee dag_{nowtimestr}.dot | dot -Tpdf > dag_{nowtimestr}.pdf",
-			]
-		cmdsummary=cmdstr+[
-			f"-D -c1 | tee summary_{nowtimestr}.txt",
-			]
-
-		if dagonly:
-			runcmd(cmddag)
-		elif summaryonly:
-			runcmd(cmdsummary)
-		else:
-			runcmd(cmdrun)
-			runcmd(cmddag)
-			runcmd(cmdsummary)
+		runcmd(cmdrun)
 
 	return 0
 
