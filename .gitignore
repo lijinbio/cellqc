@@ -20,3 +20,6 @@ main
 .DS_Store
 .snakemake
 .snakemake_timestamp
+.sw?
+.*.sw?
+.nfs*

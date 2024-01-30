@@ -3,7 +3,7 @@
 import scanpy as sc
 import anndata as ad
 
-infile, sampleid, outfile=snakemake.input[0], snakemake.params.sampleid, snakemake.output[1]
+infile, sampleid, outfile=snakemake.input[0], snakemake.params.sampleid, snakemake.output[0]
 
 x=sc.read(infile)
 
