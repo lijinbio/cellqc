@@ -51,13 +51,14 @@ sample<TAB>cellranger[<TAB>nreaction]
 
 \b
 Example:
+  # 1. To generate an example config.yaml by -n|--dryrun
   outdir=$(mktemp -d -u)
   cellqc -d "$outdir" -t 8 -n -- samples.txt # save default parameters to outdir/config.yaml
   ## copy from outdir/config.yaml and edit config.yaml
   cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt
 
 \b
-  ## To overwrite samplefile by -D|--define
+  # 2. To overwrite samplefile by -D|--define
   define=(
   sample:=:BCM_22_0769_RNA_fovea
   cellranger:=:/storage/chenlab/Users/jinli/wkfl/atlashumanprj/application/HCA/Retina/preproc/fixversion/v7.0.1/cellrangercount/BCM_22_0769_RNA_fovea/BCM_22_0769_RNA_fovea/outs
