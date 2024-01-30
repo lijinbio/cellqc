@@ -1,6 +1,7 @@
 from snakemake.utils import validate
 import pandas as pd
 import yaml
+import json
 from pathlib import Path
 
 samplefile, outdir, nowtimestr=config['samplefile'], config['outdir'], config['nowtimestr']
@@ -13,34 +14,40 @@ if config['configfile']=='None':
 	config['configfile']=None
 
 # Default parameters
-if 'dropkick' not in config:
-	config['dropkick']={
+default_params={
+	'dropkick': {
 		'skip': False,
 		'method': 'multiotsu',
 		'numthreads': 1,
-	}
-
-if 'filterbycount' not in config:
-	config['filterbycount']={
+	},
+	'filterbycount': {
 		'mincount': 500,
 		'minfeature': 300,
 		'mito': 10,
-	}
-
-if 'doubletfinder' not in config:
-	config['doubletfinder']={
+	},
+	'doubletfinder': {
 		'skip': False,
 		'findpK': False,
 		'numthreads': 5,
 		'pK': 0.01,
-	}
-
-if 'scpred' not in config:
-	config['scpred']={
+	},
+	'scpred': {
 		'skip': True,
 		'reference': '/path_to_reference/scPred_trainmodel_RNA_svmRadialWeights_scpred.rds',
 		'threshold': 0.9,
-	}
+	},
+}
+
+# Assign default params to config if not existing
+for key, paramdict in default_params.items():
+	if key not in config:
+		config[key]=paramdict
+	else:
+		for subkey, value in paramdict.items():
+			if subkey not in config[key]:
+				config[key][subkey]=value
+			else:
+				print("Info: {key} and {subkey} are in config. So, skipping default assignment.")
 
 if config['configfile']:
 	configdir=Path(config['configfile']).parent
@@ -52,6 +59,7 @@ samples=pd.read_table(config['samples']).set_index('sample', drop=False)
 validate(samples, '../schemas/samples.schema.yaml')
 
 # debug parameters
+print(json.dumps(config, indent=4))
 nowtimestr=config['nowtimestr']
 with open(f"config_{nowtimestr}.yaml", 'w') as f:
 	yaml.dump(config, f, sort_keys=False)
