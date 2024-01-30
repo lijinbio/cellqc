@@ -1,19 +1,23 @@
-# v0.0.6 @ Mar 8, 2023
+# v0.0.7 - Jan 29, 2024
 
-- Support skip=True for doubletfinder. This might be useful for multiplex libraries.
+- Bug fix: Updated DoubletFinder with modified function names.
 
-# v0.0.5 @ Feb 16, 2023
+# v0.0.6 - Mar 8, 2023
 
-- Separate sample file (e.g., samples.txt) from config.yaml, where config.yaml
+- Added support for "skip=True" in DoubletFinder, useful for multiplex libraries.
 
-# v0.0.4 @ Dec 16, 2022
+# v0.0.5 - Feb 16, 2023
 
-- Update installation instrutions using conda
+- Separated sample file (e.g., samples.txt) from config.yaml.
 
-# v0.0.3 @ Oct 31, 2022
+# v0.0.4 - Dec 16, 2022
 
-## Initial implementation
+- Updated installation instructions using conda.
 
-- Implemented conditional execution for dropkick and scpred
-- Implemented qc_report.html of a QC summary
+# v0.0.3 - Oct 31, 2022
+
+## Initial Implementation
+
+- Implemented conditional execution for Dropkick and scPred.
+- Implemented qc_report.html for a QC summary.
 
