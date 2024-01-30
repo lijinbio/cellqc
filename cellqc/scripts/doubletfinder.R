@@ -31,7 +31,7 @@ if (!dir.exists(outdir)) {
 }
 
 if (snakemake@params[['findpK']]) {
-	sweepx=paramSweep_v3(x, PCs=1:10, sct=F, num.cores=snakemake@params[['numthreads']])
+	sweepx=paramSweep(x, PCs=1:10, sct=F, num.cores=snakemake@params[['numthreads']])
 	sweepstats=summarizeSweep(sweepx, GT=F)
 	pdf(sprintf('%s/findpK_bcmetric_raw.pdf', outdir), width=8, height=7.5)
 	bcmetric=find.pK(sweepstats)
@@ -84,7 +84,7 @@ utils::write.table(
 	, col.names=T
 	)
 
-res=doubletFinder_v3(x, PCs=1:10, pN=0.25, pK=pKopt, nExp=nExp_poi, reuse.pANN=F, sct=F)
+res=doubletFinder(x, PCs=1:10, pN=0.25, pK=pKopt, nExp=nExp_poi, reuse.pANN=F, sct=F)
 
 metadata=res@meta.data
 header=names(metadata)
