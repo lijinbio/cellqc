@@ -13,7 +13,7 @@ for obsm in x.obsm_keys():
 	result.obsm[obsm]=x.obsm[obsm]
 
 # 2. Add prefix to cell barcode
-result.obs.index=sampleid+result.obs.index
+result.obs.index=sampleid+'_'+result.obs.index
 
 # 3. Unique var names
 result.var_names_make_unique(join='.')
