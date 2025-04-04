@@ -17,7 +17,7 @@ conda activate cellqc
 mamba install r-seurat=4 r-seuratobject=4 r-matrix=1.6.1
 
 # Build from source
-Rscript -e "remotes::install_github(c('mojaveazure/seurat-disk', 'immunogenomics/harmony', 'powellgenomicslab/scPred'), upgrade=F)"
+Rscript -e "remotes::install_github(c('mojaveazure/seurat-disk', 'immunogenomics/harmony', 'powellgenomicslab/scPred', 'powellgenomicslab/DropletQC'), upgrade=F)"
 
 # Bug fix @counts for Seurat object, instead of chris-mcginnis-ucsf/DoubletFinder
 Rscript -e "remotes::install_github('lijinbio/DoubletFinder', upgrade=F, force=T)"
@@ -39,6 +39,7 @@ Dependent software are summarized below.
 | SeuratDisk | https://github.com/mojaveazure/seurat-disk |
 | SoupX | https://github.com/constantAmateur/SoupX |
 | scPred | https://github.com/powellgenomicslab/scPred |
+| DropletQC | https://github.com/powellgenomicslab/DropletQC|
 | Snakemake | https://github.com/snakemake/snakemake |
 | Scanpy | https://scanpy.readthedocs.io/en/stable |
 | dropkick | https://github.com/KenLauLab/dropkick |
@@ -129,6 +130,7 @@ A pre-trained classifier for cell-type annotation by scPred.
 
 Three result files are generated under a `result` subdirectory. `result/*.h5seurat` and `result/*.h5ad` files are count matrices after processing with QC metrics such as "pANN" for proportion of artificial nearest neighbors, and/or "scpred_prediction" for predicted cell type. A report file `result/report.html` is a summary of QC metrics. A `postproc` subdirectory with `postproc/*.h5ad` files is also generated for basic post-processing. This includes adding a prefix to the cell barcode, ensuring unique variable names, and cleaning the `raw` layer from the .h5ad file.
 
+<!--
 ### An example
 
 This example demonstrates the pipeline on two AMD samples. The test data consists of Cell Ranger output directories of two AMD samples, as well as a pretrained calssifier for cell-type annotation.
@@ -155,4 +157,6 @@ A directed acyclic graph (DAG) of jobs will be generated. For example,
 ![DAG](docs/tests/dag.png)
 
 A report of result files will be also produced, such as [report.html](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report.html).
+
+-->
 
