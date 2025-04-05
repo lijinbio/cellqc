@@ -17,6 +17,7 @@ rule all:
 include: "rules/common.smk"
 
 include: "rules/soupx.smk"
+include: "rules/nuclear_fraction.smk"
 
 if not config["dropkick"]["skip"]:
   include: "rules/dropkick.smk"

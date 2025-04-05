@@ -15,6 +15,11 @@ if config['configfile']=='None':
 
 # Default parameters
 default_params={
+	'nuclear_fraction': {
+		'numthreads': 12,
+		'cbtag': 'CB',
+		'retag': 'RE',
+	},
 	'dropkick': {
 		'skip': False,
 		'method': 'multiotsu',
