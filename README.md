@@ -62,6 +62,10 @@ cellqc -h
 - A configuration file is in the YAML format. It is optional. The default parameters can be used as below. See the next section for the inspection of configuration.
 
 ```
+nuclear_fraction
+  numthreads: 12
+  cbtag: CB
+  retag: RE
 dropkick:
   skip: false
   method: multiotsu

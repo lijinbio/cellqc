@@ -1,3 +1,11 @@
+# v0.0.9 - Apr 5, 2025
+
+- Calculate a nuclear fraction score to quantify the proportion of reads from intronic regions.
+
+# v0.0.8 - Dec 5, 2024
+
+- Add the sample ID to the cell barcode prefix in the postprocessed .h5ad file.
+
 # v0.0.7 - Jan 29, 2024
 
 - Bug fix: Updated DoubletFinder with modified function names.
