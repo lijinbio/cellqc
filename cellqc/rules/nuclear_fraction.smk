@@ -1,8 +1,8 @@
-rule soupx:
+rule nuclear_fraction:
   input:
     get_cellranger,
   output:
-    "soupx/{sample}.txt.gz",
+    "nuclear_fraction/{sample}.txt.gz",
   params:
     sampleid="{sample}",
     cbtag=config["nuclear_fraction"]["cbtag"],

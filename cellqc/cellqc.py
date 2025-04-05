@@ -72,7 +72,7 @@ Note:
   2. The "-D|--define" option can be utilized to define an individual sample by overwriting the SAMPLEFILE.
 
 \b
-Date: 2024/01/30
+Date: 2025/04/05
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	nowtimestr=datetime.datetime.now().strftime('%y%m%d_%H%M%S')
@@ -96,25 +96,25 @@ Authors: Jin Li <lijin.abc@gmail.com>
 
 	cmdstr=[
 		f"snakemake",
-		f"-s {absdir}/Snakefile",
-		f"-d {outdir}",
-		f"-j {numthreads}",
-		f"-C samplefile='{samplefile}' outdir='{outdir}' configfile='{configfile}' nowtimestr='{nowtimestr}'",
+		f"--snakefile {absdir}/Snakefile",
+		f"--directory {outdir}",
+		f"--cores {numthreads}",
+		f"--jobs {numthreads}",
+		f"--config samplefile='{samplefile}' outdir='{outdir}' configfile='{configfile}' nowtimestr='{nowtimestr}'",
 		]
 
 	if configfile:
 		cmdstr+=[f"--configfile {configfile}"]
 
 	if dryrun:
-		cmdstr+=[f"-n -p"]
+		cmdstr+=[f"--dry-run --printshellcmds"]
 		runcmd(cmdstr)
 
 	else:
-		cmdrun=cmdstr+[
-			f"-r -p --debug-dag",
-			f"--stats Snakefile_{nowtimestr}.stats",
+		cmdstr+=[
+			f"--printshellcmds --debug-dag --skip-script-cleanup --verbose --software-deployment-method conda",
 			]
-		runcmd(cmdrun)
+		runcmd(cmdstr)
 
 	return 0
 
