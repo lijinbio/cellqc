@@ -10,13 +10,18 @@ It is easy to install cellqc via [conda](https://docs.conda.io/en/latest/minicon
 
 ```
 conda config --add channels defaults --add channels bioconda --add channels conda-forge
+
 # Downgrade Seurat to v4 for SeuratDisk, as Seurat v5 is not supported in SeuratDisk.
 mamba create -y -n cellqc python=3.10 cellqc r-seurat=4 r-seuratobject=4 r-matrix=1.6.1 dropkick r-hdf5r hdf5 r-leidenbase libxml2 r-xml r-xml2 zlib bioconductor-rsamtools
+
 conda activate cellqc
+
 # Build from source
 Rscript -e "remotes::install_github(c('mojaveazure/seurat-disk', 'immunogenomics/harmony', 'powellgenomicslab/scPred', 'powellgenomicslab/DropletQC'), upgrade=F)"
+
 # Bug fix @counts for Seurat object, instead of chris-mcginnis-ucsf/DoubletFinder
 Rscript -e "remotes::install_github('lijinbio/DoubletFinder', upgrade=F, force=T)"
+
 pip install -U cellqc # Optional: to install the latest version from PyPI
 ```
 
