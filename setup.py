@@ -7,7 +7,7 @@ import ast
 
 from setuptools import setup, find_packages
 
-DEPENDENCIES=['click', 'snakemake', 'pygraphviz', 'Jinja2']
+DEPENDENCIES=['click', 'snakemake>=8', 'pygraphviz', 'Jinja2']
 EXCLUDE_FROM_PACKAGES=["contrib", "docs", "tests*"]
 CURDIR=os.path.abspath(os.path.dirname(__file__))
 
