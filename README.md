@@ -12,7 +12,7 @@ It is easy to install cellqc via [conda](https://docs.conda.io/en/latest/minicon
 conda config --add channels defaults --add channels bioconda --add channels conda-forge
 
 # Downgrade Seurat to v4 for SeuratDisk, as Seurat v5 is not supported in SeuratDisk.
-mamba create -y -n cellqc python=3.10 cellqc r-seurat=4 r-seuratobject=4 r-matrix=1.6.1 dropkick r-hdf5r hdf5 r-leidenbase libxml2 r-xml r-xml2 zlib bioconductor-rsamtools
+mamba create -y -n cellqc python=3.10 cellqc r-seurat=4 r-seuratobject=4 r-matrix=1.6.1 dropkick r-hdf5r hdf5 r-leidenbase libxml2 r-xml r-xml2 zlib bioconductor-rsamtools 'snakemake>=8.0'
 
 conda activate cellqc
 
