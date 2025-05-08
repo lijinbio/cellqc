@@ -112,7 +112,7 @@ Authors: Jin Li <lijin.abc@gmail.com>
 
 	else:
 		cmdstr+=[
-			f"--printshellcmds --debug-dag --skip-script-cleanup --verbose --software-deployment-method conda",
+			f"--printshellcmds --debug-dag --skip-script-cleanup --verbose --use-conda",
 			]
 		runcmd(cmdstr)
 
