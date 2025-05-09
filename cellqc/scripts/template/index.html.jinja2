@@ -43,12 +43,12 @@
         <h2> Global contamination fraction estimate  </h2>
       </div>
     {% for file, datauri in soupxrho.items() -%}
-      <div class="pdf">
+      <div class="png">
         <div class="heading">
           <h2> {{ file }} </h2>
         </div>
-        <div class="iframe-wrapper">
-          <iframe src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%" height="100%"> </iframe>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
         </div>
       </div>
     {% endfor %}
@@ -112,12 +112,12 @@
         <h2> Violin plot before filtering </h2>
       </div>
     {% for file, datauri in filterbycountpltbf.items() -%}
-      <div class="pdf">
+      <div class="png">
         <div class="heading">
           <h2> {{ file }} </h2>
         </div>
-        <div class="iframe-wrapper">
-          <iframe src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%" height="100%"> </iframe>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
         </div>
       </div>
     {% endfor %}
@@ -126,12 +126,12 @@
         <h2> Violin plot after filtering </h2>
       </div>
     {% for file, datauri in filterbycountpltaf.items() -%}
-      <div class="pdf">
+      <div class="png">
         <div class="heading">
           <h2> {{ file }} </h2>
         </div>
-        <div class="iframe-wrapper">
-          <iframe src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%" height="100%"> </iframe>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
         </div>
       </div>
     {% endfor %}
@@ -153,12 +153,12 @@
         <h2> Violin plot of pANN (percentage of artificial nearest neighbors) </h2>
       </div>
     {% for file, datauri in doubletpannviolin.items() -%}
-      <div class="pdf">
+      <div class="png">
         <div class="heading">
           <h2> {{ file }} </h2>
         </div>
-        <div class="iframe-wrapper">
-          <iframe src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%" height="100%"> </iframe>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
         </div>
       </div>
     {% endfor %}
@@ -167,12 +167,12 @@
         <h2> TSNE: color by classification </h2>
       </div>
     {% for file, datauri in doublettsne.items() -%}
-      <div class="pdf">
+      <div class="png">
         <div class="heading">
           <h2> {{ file }} </h2>
         </div>
-        <div class="iframe-wrapper">
-          <iframe src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%" height="100%"> </iframe>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
         </div>
       </div>
     {% endfor %}
@@ -181,12 +181,12 @@
         <h2> UMAP: color by classification </h2>
       </div>
     {% for file, datauri in doubletumap.items() -%}
-      <div class="pdf">
+      <div class="png">
         <div class="heading">
           <h2> {{ file }} </h2>
         </div>
-        <div class="iframe-wrapper">
-          <iframe src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%" height="100%"> </iframe>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
         </div>
       </div>
     {% endfor %}
