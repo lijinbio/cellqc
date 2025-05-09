@@ -13,7 +13,7 @@ result=nuclear_fraction_tags(
 	tiles=100,
 	cell_barcode_tag=cbtag,
 	region_type_tag=retag,
-	verbose=T
+	verbose=F
 )
 
 utils::write.table(
