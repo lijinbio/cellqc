@@ -66,8 +66,8 @@ _dropkickscore={f : data_uri_from_file(f) for f in snakemake.input.dropkickscore
 ## Filterbycounts
 tmp=[pd.read_csv(f'{dir}/filter_ncell.txt', sep='\t', header=0) for dir in snakemake.input.filterbycountdir]
 _filterbycountncell=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
-_filterbycountpltbf={dir : data_uri_from_file(f'{dir}/feature_bf.pdf') for dir in snakemake.input.filterbycountdir}
-_filterbycountpltaf={dir : data_uri_from_file(f'{dir}/feature_af.pdf') for dir in snakemake.input.filterbycountdir}
+_filterbycountpltbf={dir : data_uri_from_file(f'{dir}/feature_bf.png') for dir in snakemake.input.filterbycountdir}
+_filterbycountpltaf={dir : data_uri_from_file(f'{dir}/feature_af.png') for dir in snakemake.input.filterbycountdir}
 
 ## DoubletFinder
 pK=snakemake.params.pK
