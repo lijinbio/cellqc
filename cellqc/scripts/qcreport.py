@@ -73,9 +73,9 @@ _filterbycountpltaf={dir : data_uri_from_file(f'{dir}/feature_af.pdf') for dir i
 pK=snakemake.params.pK
 tmp=[pd.read_csv(f'{dir}/doublet_ratio.txt', sep='\t', header=0) for dir in snakemake.input.doubletfinderdir]
 _doubletratio=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
-_doubletpannviolin={dir : data_uri_from_file(f'{dir}/pANN_violin_pK{pK}.pdf') for dir in snakemake.input.doubletfinderdir}
-_doublettsne={dir : data_uri_from_file(f'{dir}/tsne_doublet_pK{pK}.pdf') for dir in snakemake.input.doubletfinderdir}
-_doubletumap={dir : data_uri_from_file(f'{dir}/umap_doublet_pK{pK}.pdf') for dir in snakemake.input.doubletfinderdir}
+_doubletpannviolin={dir : data_uri_from_file(f'{dir}/pANN_violin_pK{pK}.png') for dir in snakemake.input.doubletfinderdir}
+_doublettsne={dir : data_uri_from_file(f'{dir}/tsne_doublet_pK{pK}.png') for dir in snakemake.input.doubletfinderdir}
+_doubletumap={dir : data_uri_from_file(f'{dir}/umap_doublet_pK{pK}.png') for dir in snakemake.input.doubletfinderdir}
 
 ## scPred
 _scpredcontingency={dir : pd.read_csv(f'{dir}/contingency.txt', sep='\t', header=0).to_html() for dir in snakemake.input.scpreddir} if len(snakemake.input.scpreddir)>0 else None

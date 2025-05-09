@@ -111,13 +111,13 @@ theme(
 	, legend.position='right'
 	, axis.text.x=element_text(angle=45, vjust=1, hjust=1)
 	)
-ggsave(p, file=sprintf('%s/pANN_violin_pK%s.pdf', outdir, pKopt), width=6, height=5, units='in', useDingbats=F)
+ggsave(p, file=sprintf('%s/pANN_violin_pK%s.png', outdir, pKopt), width=6, height=5, units='in', dpi=200)
 
-pdf(sprintf('%s/umap_doublet_pK%s.pdf', outdir, pKopt), width=8, height=7.5)
+png(sprintf('%s/umap_doublet_pK%s.png', outdir, pKopt), width=8, height=7.5, units='in', res=200)
 print(DimPlot(res, reduction='umap', group.by=group))
 dev.off()
 
-pdf(sprintf('%s/tsne_doublet_pK%s.pdf', outdir, pKopt), width=8, height=7.5)
+png(sprintf('%s/tsne_doublet_pK%s.png', outdir, pKopt), width=8, height=7.5, units='in', res=200)
 print(DimPlot(res, reduction='tsne', group.by=group))
 dev.off()
 
