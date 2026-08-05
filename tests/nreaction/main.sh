@@ -3,4 +3,4 @@
 
 source trapdebug
 outdir=$(mrrdir.sh)
-cellqc -c config.yaml -d "$outdir"
+cellqc -c config.yaml -d "$outdir" -- samples.txt

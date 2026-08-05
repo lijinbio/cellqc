@@ -1,12 +1,124 @@
 $schema: "http://json-schema.org/draft-06/schema#"
 
-description: snakemake configuration file
+description: cellqc configuration
 
 type: object
 
 properties:
   samples:
     type: string
+    description: path to the tab-delimited sample file
+
+  seed:
+    type: integer
+    description: >
+      Seed for every stochastic step (PCA/UMAP/t-SNE, artificial-doublet
+      sampling). v0.1.0 set no seed and was therefore not reproducible.
+
+  ambient:
+    type: object
+    properties:
+      method:
+        enum: [soupx, decontx, none]
+        description: the one method whose correction is applied to the counts
+      compare:
+        type: array
+        description: >
+          Methods run for their contamination estimate only. These never touch
+          the counts -- they exist so disagreement is visible, not so a
+          correction can be chosen post hoc by how the result looks.
+        items:
+          enum: [soupx, decontx]
+        uniqueItems: true
+    additionalProperties: false
+
+  nuclear_fraction:
+    type: object
+    description: >
+      No skip key by design. The step is enabled per sample by the presence of
+      an indexed possorted_genome_bam.bam in the Cell Ranger directory.
+    properties:
+      numthreads:
+        type: integer
+        minimum: 1
+      cbtag:
+        type: string
+        minLength: 1
+      retag:
+        type: string
+        minLength: 1
+      exontag:
+        type: string
+        minLength: 1
+      introntag:
+        type: string
+        minLength: 1
+    additionalProperties: false
+
+  filterbycount:
+    type: object
+    properties:
+      mincount:
+        type: integer
+        minimum: 0
+        description: minimum total UMI per cell
+      minfeature:
+        type: integer
+        minimum: 0
+        description: minimum detected genes per cell
+      mito:
+        type: number
+        minimum: 0
+        maximum: 100
+        description: maximum percent mitochondrial counts
+    additionalProperties: false
+
+  doublet:
+    type: object
+    properties:
+      skip:
+        type: boolean
+      run:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          enum: [doubletfinder, scdblfinder]
+      decider:
+        enum: [doubletfinder, scdblfinder]
+        description: >
+          The single caller whose call removes cells. Every caller in `run`
+          contributes its score to .obs, but only this one decides, so there is
+          no undeclared ensemble rule.
+      findpK:
+        type: boolean
+      numthreads:
+        type: integer
+        minimum: 1
+      pK:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 1
+      rate:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 1
+        description: >
+          10x multiplet rate at `capacity` cells recovered. Expected doublet
+          fraction is rate * ncell / (nreaction * capacity). Hard-coded as 0.1
+          in v0.1.0; exposed here so the assumption is visible. NOT adjusted for
+          homotypic doublets, which makes it an over-estimate of the detectable
+          doublet count -- the step removes slightly more cells than the true
+          heterotypic count.
+      capacity:
+        type: integer
+        minimum: 1
+        description: assumed cells recovered per reaction (v0.1.0 hard-coded 13000)
+    additionalProperties: false
 
 required:
   - samples
+  - seed
+  - ambient
+  - filterbycount
+  - doublet

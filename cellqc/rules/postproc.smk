@@ -1,7 +1,6 @@
 rule postproc:
   input:
-    "result/{sample}.h5ad",
-    "nuclear_fraction/{sample}.txt.gz",
+    unpack(postproc_input),
   output:
     "postproc/{sample}.h5ad",
   params:

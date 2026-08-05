@@ -1,137 +1,137 @@
 # vim: set noexpandtab tabstop=2:
+#
+# DoubletFinder. Reads the .h5ad written by filterbycount.py through
+# zellkonverter's native R reader (no reticulate/basilisk), and writes only a
+# per-barcode metadata table -- filterdoublet.py applies it. R never rewrites
+# the matrix, which keeps a second serializer out of the count path.
 
-suppressPackageStartupMessages(library(Seurat))
-suppressPackageStartupMessages(library(SeuratDisk))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(DoubletFinder))
-suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages({
+	library(zellkonverter)
+	library(SingleCellExperiment)
+	library(Seurat)
+	library(DoubletFinder)
+	library(ggplot2)
+})
 
 infile=snakemake@input[[1]]
-outdir=snakemake@output[[1]]
-outfile=snakemake@output[[2]]
-statfile=snakemake@output[[3]]
+outmeta=snakemake@output[[1]]
+outratio=snakemake@output[[2]]
+outpann_pdf=snakemake@output[[3]]
+outpann_png=snakemake@output[[4]]
+outumap_pdf=snakemake@output[[5]]
+outumap_png=snakemake@output[[6]]
+
 sampleid=snakemake@params[['sampleid']]
+findpK=snakemake@params[['findpK']]
+pK=snakemake@params[['pK']]
+nreaction=as.numeric(snakemake@params[['nreaction']])
+rate=as.numeric(snakemake@params[['rate']])
+capacity=as.numeric(snakemake@params[['capacity']])
+seed=as.integer(snakemake@params[['seed']])
+numthreads=as.integer(snakemake@threads)
 
-if (endsWith(infile, '.h5')) {
-	x=Read10X_h5(infile)
-	x=CreateSeuratObject(counts=x)
-} else if (endsWith(infile, '.rds')) {
-	x=readRDS(infile)
-} else if (endsWith(infile, '.h5seurat')) {
-	x=LoadH5Seurat(infile, assay='RNA')
-} else {
-	write('Error: wrong infile. Please input either .rds or .h5seurat file\n', stderr())
-	q(status=1)
+# v0.1.0 seeded nothing: RunPCA/RunUMAP and DoubletFinder's artificial-doublet
+# sampling are all stochastic, so repeat runs gave different calls.
+set.seed(seed)
+
+sce=readH5AD(infile, reader='R', verbose=FALSE)
+# zellkonverter names the main assay 'X'; Seurat and scDblFinder both expect
+# 'counts'. Normalise the name once, here.
+if (!'counts' %in% assayNames(sce)) {
+	assayNames(sce)[assayNames(sce)=='X']='counts'
 }
+stopifnot('counts' %in% assayNames(sce))
 
-x=x %>% NormalizeData() %>% FindVariableFeatures(selection.method='vst', nfeatures=2000) %>% ScaleData() %>% RunPCA() %>% RunTSNE() %>% RunUMAP(dims=1:30)
+x=CreateSeuratObject(counts=assay(sce, 'counts'), meta.data=as.data.frame(colData(sce)))
+cat(sprintf('[doubletfinder] %s: %d genes x %d cells\n', sampleid, nrow(x), ncol(x)))
 
-if (!dir.exists(outdir)) {
-	dir.create(outdir)
-}
+npc=min(30, ncol(x)-1)
+x=NormalizeData(x, verbose=FALSE)
+x=FindVariableFeatures(x, selection.method='vst', nfeatures=2000, verbose=FALSE)
+x=ScaleData(x, verbose=FALSE)
+x=RunPCA(x, npcs=npc, verbose=FALSE, seed.use=seed)
+x=RunUMAP(x, dims=1:npc, verbose=FALSE, seed.use=seed)
 
-if (snakemake@params[['findpK']]) {
-	sweepx=paramSweep(x, PCs=1:10, sct=F, num.cores=snakemake@params[['numthreads']])
-	sweepstats=summarizeSweep(sweepx, GT=F)
-	pdf(sprintf('%s/findpK_bcmetric_raw.pdf', outdir), width=8, height=7.5)
+## ---- pK --------------------------------------------------------------------
+if (isTRUE(findpK)) {
+	sweepx=paramSweep(x, PCs=1:10, sct=FALSE, num.cores=numthreads)
+	sweepstats=summarizeSweep(sweepx, GT=FALSE)
 	bcmetric=find.pK(sweepstats)
-	dev.off()
-	write.table(bcmetric, file=gzfile(sprintf('%s/findpK_bcmetric.txt.gz', outdir)), quote=F, sep='\t', row.names=F, col.names=T)
+	utils::write.table(bcmetric, file=gzfile(sub('_metadata.txt.gz$', '_findpK.txt.gz', outmeta)),
+		quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
 	bcmetric$pK=as.numeric(levels(bcmetric$pK))[bcmetric$pK]
-
-	p=ggplot(data=bcmetric, aes(x=pK, y=BCmetric)) +
-	geom_line(color='blue') +
-	geom_point(color='blue') +
-	scale_x_continuous(breaks=scales::pretty_breaks(n=10)) +
-	scale_y_continuous(breaks=scales::pretty_breaks(n=10)) +
-	xlab('pK') +
-	ylab('Mean-variance-normalized bimodality coefficient (meanBC/varBC)') +
-	ggtitle('') +
-	theme_bw() +
-	theme(
-		plot.background=element_blank()
-		, panel.grid.major=element_blank()
-		, panel.grid.minor=element_blank()
-		, panel.border=element_blank()
-		, plot.title=element_text(hjust=0.5)
-		, axis.line=element_line(color='black')
-		, axis.text=element_text(color='black')
-		, legend.title=element_blank()
-		, legend.position='right'
-		)
-	ggsave(p, file=sprintf('%s/findpK_bcmetric.pdf', outdir), width=6, height=5, units='in', useDingbats=F)
 	pKopt=bcmetric$pK[which.max(bcmetric[, 'BCmetric'])]
+	cat(sprintf('[doubletfinder] %s: estimated pK=%g\n', sampleid, pKopt))
 } else {
-	pKopt=snakemake@params[['pK']]
+	pKopt=pK
+	cat(sprintf('[doubletfinder] %s: using preset pK=%g\n', sampleid, pKopt))
 }
 
-nreaction=snakemake@params[['nreaction']]
-doubletratio=round(ncol(x)*0.1/(nreaction*13000), digits=2)
-nExp_poi=round(doubletratio*ncol(x))
-cat(sprintf('%s: expected %f of %d cells is %d\n', sampleid, doubletratio, ncol(x), nExp_poi))
+## ---- Expected doublets -----------------------------------------------------
+# 10x multiplet rule of thumb, unchanged from v0.1.0 but with the two constants
+# now configurable. NOT adjusted for homotypic doublets (modelHomotypic is
+# deliberately not called), so nExp over-estimates the DETECTABLE doublet count
+# and this step removes somewhat more cells than the true heterotypic count.
+# The bias direction is known, constant, and reported.
+ncell=ncol(x)
+doubletratio=round(rate*ncell/(nreaction*capacity), digits=2)
+nExp=as.integer(round(doubletratio*ncell))
+cat(sprintf('[doubletfinder] %s: expected doublet rate %.3f of %d cells -> nExp=%d (homotypic NOT modelled)\n',
+	sampleid, doubletratio, ncell, nExp))
+
+# reuse.pANN must be NULL, not FALSE. Upstream v2.0.6 switched this check from
+# `if (reuse.pANN)` to `if (!is.null(reuse.pANN))`, so the FALSE that v0.1.0
+# passed now takes the reuse branch and fails with "cannot xtfrm data frames".
+res=doubletFinder(x, PCs=1:10, pN=0.25, pK=pKopt, nExp=nExp, reuse.pANN=NULL, sct=FALSE)
+
+meta=res@meta.data
+scorecol=grep('^pANN_', names(meta), value=TRUE)[1]
+classcol=grep('^DF.classifications_', names(meta), value=TRUE)[1]
+stopifnot(!is.na(scorecol), !is.na(classcol))
+
+out=data.frame(
+	barcode=rownames(meta),
+	doubletfinder_pANN=meta[[scorecol]],
+	doubletfinder_class=as.character(meta[[classcol]]),
+	stringsAsFactors=FALSE
+	)
+utils::write.table(out, file=gzfile(outmeta), quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
+
+ndoublet=sum(out$doubletfinder_class=='Doublet')
 utils::write.table(
 	data.frame(
-		sampleid=sampleid
-		, doubletratio=doubletratio
-		, ncell_bf=ncol(x)
-		, nExpdoublet=nExp_poi
-		, ncell_af=ncol(x)-nExp_poi
-		)
-	, file=statfile
-	, quote=F
-	, sep='\t'
-	, row.names=F
-	, col.names=T
+		sampleid=sampleid, caller='doubletfinder', pK=pKopt, nreaction=nreaction,
+		rate=rate, capacity=capacity, doubletratio=doubletratio,
+		ncell_before=ncell, nExp=nExp, ndoublet=ndoublet, ncell_after=ncell-ndoublet,
+		homotypic_modelled=FALSE
+		),
+	file=outratio, quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE
 	)
 
-res=doubletFinder(x, PCs=1:10, pN=0.25, pK=pKopt, nExp=nExp_poi, reuse.pANN=F, sct=F)
+## ---- Figures ---------------------------------------------------------------
+res$pANN=out$doubletfinder_pANN
+res$DF_class=factor(out$doubletfinder_class, levels=c('Singlet', 'Doublet'))
 
-metadata=res@meta.data
-header=names(metadata)
-value=header[pmatch('pANN', header)]
-group=header[pmatch('DF.classifications', header)]
-metadata[, group]=factor(metadata[, group], c('Singlet', 'Doublet'))
-
-p=ggplot(data=metadata, aes_q(x=as.name(group), y=as.name(value), fill=as.name(group))) +
-geom_violin(trim=T, show.legend=F) +
-geom_boxplot(width=0.1, fill='white', outlier.shape=NA) +
-xlab('') +
-ylab('pANN') +
-ggtitle(value) +
-theme_bw() +
-theme(
-	plot.background=element_blank()
-	, panel.grid.major=element_blank()
-	, panel.grid.minor=element_blank()
-	, panel.border=element_blank()
-	, plot.title=element_text(hjust=0.5)
-	, axis.line=element_line(color='black')
-	, axis.text=element_text(color='black')
-	, legend.title=element_blank()
-	, legend.position='right'
-	, axis.text.x=element_text(angle=45, vjust=1, hjust=1)
-	)
-ggsave(p, file=sprintf('%s/pANN_violin_pK%s.png', outdir, pKopt), width=6, height=5, units='in', dpi=200)
-
-png(sprintf('%s/umap_doublet_pK%s.png', outdir, pKopt), width=8, height=7.5, units='in', res=200)
-print(DimPlot(res, reduction='umap', group.by=group))
-dev.off()
-
-png(sprintf('%s/tsne_doublet_pK%s.png', outdir, pKopt), width=8, height=7.5, units='in', res=200)
-print(DimPlot(res, reduction='tsne', group.by=group))
-dev.off()
-
-res$pANN=res@meta.data[, value]
-res$DF.classifications=res@meta.data[, group]
-utils::write.table(
-	data.frame(barcode=rownames(res@meta.data), res@meta.data)
-	, file=gzfile(sprintf('%s/doubletfinder_pK%s_metadata.txt.gz', outdir, pKopt))
-	, quote=F
-	, sep='\t'
-	, row.names=F
-	, col.names=T
+theme_cellqc=theme_bw()+theme(
+	plot.background=element_blank(), panel.grid.minor=element_blank(),
+	panel.border=element_blank(), plot.title=element_text(hjust=0.5, size=10),
+	axis.line=element_line(color='black'), axis.text=element_text(color='black')
 	)
 
-res=subset(res, cells=rownames(res@meta.data)[res@meta.data[, group]=='Singlet'])
-x=CreateSeuratObject(counts=res[['RNA']]@counts, meta.data=res@meta.data)
-SaveH5Seurat(x, file=outfile)
+pdat=data.frame(pANN=res$pANN, class=res$DF_class)
+p=ggplot(pdat, aes(x=class, y=pANN, fill=class))+
+	geom_violin(trim=TRUE, show.legend=FALSE)+
+	geom_boxplot(width=0.1, fill='white', outlier.shape=NA)+
+	scale_fill_manual(values=c(Singlet='#4c72b0', Doublet='#c44e52'))+
+	labs(x=NULL, y='pANN', title=sprintf('%s: pANN by classification (pK=%g)', sampleid, pKopt))+
+	theme_cellqc
+ggsave(p, file=outpann_pdf, width=4.5, height=4, units='in', device=cairo_pdf)
+ggsave(p, file=outpann_png, width=4.5, height=4, units='in', dpi=200)
+
+p=DimPlot(res, reduction='umap', group.by='DF_class', cols=c(Singlet='#4c72b0', Doublet='#c44e52'))+
+	labs(title=sprintf('%s: DoubletFinder calls', sampleid))+theme_cellqc
+ggsave(p, file=outumap_pdf, width=5, height=4.2, units='in', device=cairo_pdf)
+ggsave(p, file=outumap_png, width=5, height=4.2, units='in', dpi=200)
+
+cat(sprintf('[doubletfinder] %s: %d/%d cells called doublet (%.2f%%)\n',
+	sampleid, ndoublet, ncell, 100*ndoublet/ncell))

@@ -95,3 +95,31 @@ div.img-wrapper {
 	height: 420px;
 	display: block;
 }
+
+/* v0.2.0 additions */
+p.meta {
+	font-size: 10px;
+	padding: 3px 6px;
+	color: #333;
+}
+p.blurb {
+	font-size: 10px;
+	padding: 2px 10px 6px 10px;
+	color: #444;
+	max-width: 60em;
+	line-height: 1.4;
+}
+.caveats ul {
+	font-size: 10px;
+	margin: 4px 10px 10px 26px;
+	max-width: 60em;
+	line-height: 1.5;
+}
+.caveats li {
+	margin-bottom: 5px;
+}
+code {
+	font-family: Menlo, Consolas, monospace;
+	background: #f0f0f0;
+	padding: 0 2px;
+}

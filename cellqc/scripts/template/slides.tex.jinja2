@@ -1,0 +1,114 @@
+((# Beamer deck for a cellqc run.
+
+	Data-driven: every frame comes from a loop over the sample table or over a
+	declared figure list, so a new sample needs no edit here. A figure that does
+	not exist for a sample (e.g. no BAM -> no nuclear fraction) drops its frame
+	rather than failing the LaTeX build.
+
+	Jinja is configured with LaTeX-safe delimiters -- ((* *)) for statements,
+	((( ))) for expressions -- so TeX braces are left alone.
+#))
+\documentclass[aspectratio=169,10pt]{beamer}
+
+\usetheme{Madrid}
+\definecolor{retina}{RGB}{16,110,120}
+\setbeamercolor{structure}{fg=retina}
+\setbeamercolor{frametitle}{bg=retina,fg=white}
+\setbeamerfont{frametitle}{size=\large}
+\setbeamersize{text margin left=12pt,text margin right=12pt}
+\setbeamertemplate{navigation symbols}{}
+
+\definecolor{mut}{RGB}{196,78,82}
+\definecolor{wt}{RGB}{76,114,176}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage[T1]{fontenc}
+
+\title{((( title )))}
+\subtitle{Single-cell RNA-seq quality control}
+\date{((( date )))}
+
+\begin{document}
+
+\begin{frame}
+	\titlepage
+	\begin{center}\footnotesize
+	((( nsample ))) sample((( 's' if nsample != 1 else '' ))) \quad|\quad
+	cellqc v((( version ))) \quad|\quad random seed ((( seed )))
+	\end{center}
+\end{frame}
+
+((# --- What ran --------------------------------------------------------- #))
+\begin{frame}{What this run did}
+	\footnotesize
+	\begin{columns}[T]
+	\begin{column}{0.52\textwidth}
+	\textbf{Pipeline}
+	\begin{enumerate}
+		\item Ambient RNA: \textbf{((( ambient_method )))}((* if ambient_compare *)) \\
+			\textcolor{gray}{compared (not applied): ((( ambient_compare|join(', ') )))}((* endif *))
+		\item Filter on counts, genes, \% mitochondrial
+		\item Doublets: ((* if callers *))((( callers|join(', ') )))((* else *))skipped((* endif *))
+			((* if decider *)) \\ \textcolor{gray}{cells removed by \textbf{((( decider )))} only}((* endif *))
+		\item Nuclear fraction: ((( nf_ran )))/((( nsample ))) sample((( 's' if nsample != 1 else '' )))
+	\end{enumerate}
+	\end{column}
+	\begin{column}{0.44\textwidth}
+	\textbf{Thresholds}
+	\begin{itemize}
+		\item min UMI per cell: ((( cfg_mincount )))
+		\item min genes per cell: ((( cfg_minfeature )))
+		\item max \% mitochondrial: ((( cfg_mito )))
+		\item expected doublet rate: ((( cfg_rate ))) at ((( cfg_capacity ))) cells/reaction
+	\end{itemize}
+	\end{column}
+	\end{columns}
+\end{frame}
+
+((# --- Cohort summary --------------------------------------------------- #))
+((* if cascade_table *))
+\begin{frame}{Cells retained at each stage}
+	\centering
+	((( cascade_table )))
+	\vspace{0.4em}
+	\par\footnotesize Every exclusion is the difference between two adjacent columns.
+\end{frame}
+((* endif *))
+
+((# --- Per sample ------------------------------------------------------- #))
+((* for s in samples *))
+\begin{frame}{((( s.label ))): Cell Ranger summary}
+	\centering\tiny
+	((* if s.metrics_a *))((( s.metrics_a )))((* endif *))
+	((* if s.metrics_b *))\vspace{0.6em} ((( s.metrics_b )))((* endif *))
+	((* if not s.metrics_a *))\normalsize No \texttt{metrics\_summary.csv} found for this sample.((* endif *))
+\end{frame}
+
+((* for fig in s.figures *))
+\begin{frame}{((( s.label ))): ((( fig.title )))}
+	\begin{columns}[c]
+	\begin{column}{0.62\textwidth}
+		\centering
+		\includegraphics[width=\linewidth,height=0.76\textheight,keepaspectratio]{((( fig.path )))}
+	\end{column}
+	\begin{column}{0.36\textwidth}
+		\footnotesize ((( fig.caption )))
+	\end{column}
+	\end{columns}
+\end{frame}
+((* endfor *))
+((* endfor *))
+
+((# --- Caveats ---------------------------------------------------------- #))
+\begin{frame}{Limitations to carry with these results}
+	\footnotesize
+	\begin{itemize}
+	((* for c in caveats *))
+		\item ((( c )))
+	((* endfor *))
+	\end{itemize}
+\end{frame}
+
+\end{document}

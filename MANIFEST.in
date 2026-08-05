@@ -1,9 +1,9 @@
 include *.md LICENSE
 include cellqc/Snakefile
-include cellqc/config.smk
 graft cellqc/rules
 graft cellqc/schemas
 graft cellqc/scripts
+graft envs
 
 exclude .flake8 noxfile.py .coveragerc
 prune tests

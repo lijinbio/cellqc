@@ -1,46 +1,67 @@
 # cellqc: standardized quality control pipeline of single-cell RNA-Seq data
 
-Cellqc standardizes the qualiy control of single-cell RNA-Seq (scRNA) data to render clean feature count matrices from Cell Ranger outputs. Cellqc is implemented using the Snakemake workflow management system to enhance reproduciblity and scalablity of data analysis. Briefly, the QC pipeline starts from raw count feature matrices from Cell Ranger. Dropkick filters out predicted empty droplets, and SoupX purify the transcriptome measurement by substracting the background trancripts. DoubletFinder further detects the potential doublets and retain clean count feature matrices for singlets. Cell types are annotated for clean cells by a reference database using scPred.
+Cellqc standardizes the quality control of single-cell RNA-Seq (scRNA) data, turning Cell Ranger output
+into clean feature count matrices. It is implemented in Snakemake for reproducibility and scalability.
+
+The pipeline starts from the Cell Ranger filtered matrix and, per sample:
+
+1. **Ambient RNA** — SoupX (default) or DecontX estimates background contamination and subtracts it. Other
+   methods can be run alongside for comparison without touching the counts.
+2. **Filtering** — cells are removed on total UMI, detected genes and mitochondrial percentage, with every
+   exclusion attributed to a specific criterion.
+3. **Doublets** — DoubletFinder and/or scDblFinder. All callers score every cell; one configured caller
+   decides removal.
+4. **Nuclear fraction** — the intronic read fraction per cell, from the Cell Ranger BAM, computed when a
+   BAM is present. Reported, not used for filtering.
+
+Output is `.h5ad` matrices, a self-contained HTML report, and a presentation-ready PDF slide deck.
+
+Cell calling is Cell Ranger EmptyDrops; cellqc does not re-call cells. Cell-type annotation is out of
+scope as of v0.2.0 — annotate downstream.
 
 ![workflow](docs/workflow.png)
 
+> **Note:** `docs/workflow.png` still shows the v0.1.0 pipeline, which included dropkick and scPred. Both
+> were removed in v0.2.0; the diagram needs regenerating.
+
 ## Installation
 
-It is easy to install cellqc via [conda](https://docs.conda.io/en/latest/miniconda.html) at https://anaconda.org/bioconda/cellqc. To use the full function of cellqc, please also install several dependencies outside conda. It is encouraged to use the C++ implementation [mamba](https://github.com/mamba-org/mamba) to speed up the installation. E.g.,
+Everything comes from one conda environment. The only component that is not conda-installable is
+DoubletFinder, which is GitHub-only.
 
 ```
-conda config --add channels defaults --add channels bioconda --add channels conda-forge
-
-# Downgrade Seurat to v4 for SeuratDisk, as Seurat v5 is not supported in SeuratDisk.
-mamba create -y -n cellqc python=3.10 cellqc r-seurat=4 r-seuratobject=4 r-matrix=1.6.1 dropkick r-hdf5r hdf5 r-leidenbase libxml2 r-xml r-xml2 zlib bioconductor-rsamtools bioconductor-genomicfeatures bioconductor-rtracklayer 'pandas<2'
-
+mamba env create -n cellqc -f envs/cellqc.yaml
 conda activate cellqc
 
-# Build from source
-Rscript -e "remotes::install_github(c('mojaveazure/seurat-disk', 'immunogenomics/harmony', 'powellgenomicslab/scPred', 'powellgenomicslab/DropletQC'), upgrade=F)"
+# DoubletFinder is not packaged for conda
+Rscript -e "remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', upgrade=FALSE)"
 
-# Bug fix @counts for Seurat object, instead of chris-mcginnis-ucsf/DoubletFinder
-Rscript -e "remotes::install_github('lijinbio/DoubletFinder', upgrade=F, force=T)"
-
-pip install -U cellqc # Optional: to install the latest version from PyPI
+pip install -U cellqc
 ```
 
-Dependent software are summarized below.
+If you would rather avoid the GitHub build entirely, set `doublet.run: [scdblfinder]` and
+`doublet.decider: scdblfinder` in the config; scDblFinder comes from bioconda.
 
-| Software | URL |
-|-------|-------|
-| DoubletFinder | https://github.com/chris-mcginnis-ucsf/DoubletFinder |
-| DropletUtils | https://bioconductor.org/packages/release/bioc/html/DropletUtils.html |
-| Seurat | https://satijalab.org/seurat |
-| SeuratDisk | https://github.com/mojaveazure/seurat-disk |
-| SoupX | https://github.com/constantAmateur/SoupX |
-| scPred | https://github.com/powellgenomicslab/scPred |
-| DropletQC | https://github.com/powellgenomicslab/DropletQC|
-| Snakemake | https://github.com/snakemake/snakemake |
-| Scanpy | https://scanpy.readthedocs.io/en/stable |
-| dropkick | https://github.com/KenLauLab/dropkick |
+v0.2.0 removed five of the six GitHub builds v0.1.0 needed (SeuratDisk, harmony, scPred, DropletQC and the
+`lijinbio/DoubletFinder` fork) and all four version pins (Seurat v4, `r-matrix`, `pandas<2`, `anndata`).
 
-To test the installation, simply run
+Dependent software:
+
+| Software | Role | Source |
+|-------|-------|-------|
+| Snakemake | workflow engine | conda |
+| SoupX | ambient RNA correction (default) | conda |
+| DecontX (celda) | ambient RNA correction (alternative) | conda |
+| Scanpy / AnnData | filtering, I/O | conda |
+| pysam | nuclear fraction from the Cell Ranger BAM | conda |
+| Seurat | doublet detection backend | conda |
+| zellkonverter | `.h5ad` -> R, native reader | conda |
+| scDblFinder | doublet detection | conda |
+| DropletUtils | 10x matrix I/O | conda |
+| tectonic | builds the PDF slide report | conda |
+| **DoubletFinder** | **doublet detection (default caller)** | **GitHub only** |
+
+To test the installation:
 
 ```
 cellqc -h
@@ -48,87 +69,102 @@ cellqc -h
 
 ## Run the pipeline
 
-`Cellqc` requires a sample file for sample information and an optional configuration file for pipeline parameters.
+`cellqc` requires a sample file and an optional configuration file.
 
-- The sample file (e.g., `samples.txt`) is a tab-delimited file with headers: `sample`, `cellranger`, and/or `nreaction`.
-    - The `sample` column is the sample ID per sample.
-    - The `cellranger` is the Cell Ranger output directory. See [Cell Ranger Outputs](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/output/gex-outputs) for an example directory.
-    - The optional third column `nreaction` is the number of reactions in the library preparation, which is useful to infer expected doublets for a sample with a Cell Ranger analysis using combined raw reads from multiple reactions. If the `nreaction` column is not specified in the sample file, the default 1 reaction is used for all samples.
+- The sample file (e.g. `samples.txt`) is tab-delimited with headers `sample`, `cellranger`, and
+  optionally `nreaction`.
+    - `sample` is the sample ID.
+    - `cellranger` is the Cell Ranger output directory. Relative paths are resolved against the
+      **sample file's** directory.
+    - `nreaction` is the number of reactions in the library prep, used to infer the expected doublet
+      rate when one Cell Ranger run combines several reactions. Defaults to 1.
 
-- A configuration file is in the YAML format. It is optional. The default parameters can be used as below. See the next section for the inspection of configuration.
+- The configuration file is YAML and optional. The defaults are:
 
-```
-nuclear_fraction
+```yaml
+seed: 42                  # every stochastic step is seeded; v0.1.0 seeded nothing
+ambient:
+  method: soupx           # soupx | decontx | none -- the ONE method applied to the counts
+  compare: []             # e.g. [decontx] -- estimated and reported, never applied
+nuclear_fraction:         # runs automatically when the sample has an indexed BAM
   numthreads: 12
   cbtag: CB
   retag: RE
-dropkick:
-  skip: false
-  method: multiotsu
-  numthreads: 1
+  exontag: E
+  introntag: N
 filterbycount:
   mincount: 500
   minfeature: 300
   mito: 10
-doubletfinder:
+doublet:
   skip: false
+  run: [doubletfinder, scdblfinder]   # callers to execute
+  decider: doubletfinder              # the single caller whose call removes cells
   findpK: false
   numthreads: 5
   pK: 0.01
-scpred:
-  skip: true
-  reference: /path_to_reference/scPred_trainmodel_RNA_svmRadialWeights_scpred.rds
-  threshold: 0.9
+  rate: 0.1               # 10x multiplet rate at `capacity` cells recovered
+  capacity: 13000
 ```
 
 ### Inspection of configuration
 
-The configuration file is in a YAML format. An example configuration can be found at the example directory. 
-
-1. dropkick
-
-This section defines parameters for empty droplet removal by dropkick.
+1. `ambient` — ambient RNA correction
 
 | Parameter | Description |
 |-------|-------|
-| dropkick.skip | Skip [Dropkick](https://github.com/KenLauLab/dropkick) and use the estimated cells from Cell Ranger alone (using [EmptyDrops](https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/algorithms/overview#cell_calling)) if set `true`. If set `false`, to estimate further empty droplets by Dropkick. Be cautious that Dropdick might predict a significant number of false negatives for a poor library. |
-| dropkick.method | The thresholding method for labeling the training data for true cells, such as multiotsu, otsu, li, or mean. |
-| dropkick.numthreads | Number of threads. Dropkick will use significant memory. One thread is suggested for this step. |
+| ambient.method | The one method whose corrected counts are written: `soupx`, `decontx`, or `none`. |
+| ambient.compare | Methods run for their contamination estimate only. They never modify counts; they exist so disagreement between methods is visible. Choosing a correction after seeing which one flatters the downstream result is not supported by design. |
 
-2. filterbycount
+2. `nuclear_fraction`
 
-To filter cells by nCount, nFeature, and percentage of mitochondria reads.
+Fraction of intronic reads per cell, `intronic / (intronic + exonic)`, computed from the Cell Ranger BAM
+with pysam. There is **no skip flag**: the step runs for any sample with an indexed
+`possorted_genome_bam.bam` and is dropped for those without, so mixed cohorts work. The result is
+reported and plotted against log10(UMI) but is **not used for filtering** — DropletQC-style empty-drop and
+damaged-cell thresholds are sample- and tissue-dependent, so applying them automatically would be
+unreviewed auto-filtering.
 
-| Parameter | Description |
-|-------|-------|
-| filterbycount.mincount | Minimum counts for a cell. |
-| filterbycount.minfeature | Minimum features for a cell. |
-| filterbycount.mito | Maximum percentage of mitocondria transcripts. |
-
-3. doubletfinder
-
-This section includes three parameters for doublet removal by DoubletFinder.
+3. `filterbycount`
 
 | Parameter | Description |
 |-------|-------|
-| doubletfinder.skip | Skip doublet detection and removal. |
-| doubletfinder.findpK | To estimate the neighbor size (pK) by mean-variance bimodality coefficients if `true`. If set `false`, skip the estimation and use the preset pK value. |
-| doubletfinder.numthreads | Number of threads. |
-| doubletfinder.pK | A preset neighbor size (pK). Will be used if `doubletfinder.findpK=false`. |
+| filterbycount.mincount | Minimum total UMI per cell. |
+| filterbycount.minfeature | Minimum detected genes per cell. |
+| filterbycount.mito | Maximum percentage of mitochondrial counts. |
 
-4. scpred
-
-A pre-trained classifier for cell-type annotation by scPred.
+4. `doublet`
 
 | Parameter | Description |
 |-------|-------|
-| scpred.skip | Skip the automated cell type prediction by scPred if `true`. This is useful for a sample without a pre-trained reference. |
-| scpred.reference | The pre-trained reference classifier saved in a RDS file. See https://github.com/powellgenomicslab/scPred |
-| scpred.threshold | Threshold for a positive prediction. |
+| doublet.skip | Skip doublet detection entirely. |
+| doublet.run | Which callers to execute: any of `doubletfinder`, `scdblfinder`. Every caller's score and class are written to `.obs` under namespaced columns. |
+| doublet.decider | The single caller whose call removes cells. Keeping the decision with one caller avoids an undeclared ensemble: a union removes more cells than the assumed multiplet rate, an intersection fewer. |
+| doublet.findpK | Estimate pK by mean-variance bimodality coefficient (DoubletFinder only). |
+| doublet.pK | Preset neighbourhood size, used when `findpK: false`. |
+| doublet.rate, doublet.capacity | Expected doublet fraction is `rate * ncell / (nreaction * capacity)`. Hard-coded in v0.1.0; exposed so the assumption is visible. |
+
+Both callers are given the same expected doublet rate, so a difference between them reflects the methods
+rather than differing priors. Their concordance (2×2 table and Cohen's κ) is reported. **Concordance is a
+consistency measure, not an accuracy measure** — with no ground-truth doublets, neither caller can be
+shown superior on real data.
+
+Note that homotypic doublets are **not** modelled (`modelHomotypic` is deliberately not called), so the
+expected count over-estimates the *detectable* doublet count and the step removes slightly more cells than
+the true heterotypic count. The bias direction is known, constant, and stated in every report.
 
 ### Result files
 
-Three result files are generated under a `result` subdirectory. `result/*.h5seurat` and `result/*.h5ad` files are count matrices after processing with QC metrics such as "pANN" for proportion of artificial nearest neighbors, and/or "scpred_prediction" for predicted cell type. A report file `result/report.html` is a summary of QC metrics. A `postproc` subdirectory with `postproc/*.h5ad` files is also generated for basic post-processing. This includes adding a prefix to the cell barcode, ensuring unique variable names, and cleaning the `raw` layer from the .h5ad file.
+| Path | Contents |
+|---|---|
+| `result/{sample}.h5ad` | QC'd count matrix. `.obs` carries the QC metrics and every doublet caller's score/class; `.uns` records which caller decided removal. |
+| `postproc/{sample}.h5ad` | The same matrix prepared for integration: sample-prefixed barcodes, unique var names, no `raw` layer, nuclear fraction attached when available. |
+| `result/report.html` | Self-contained HTML QC report; all figures inlined. |
+| `result/report_slides.pdf` | Presentation-ready beamer deck: Cell Ranger metrics, barcode rank, ambient RNA, QC violins, nuclear fraction, doublet calls, and a limitations slide. |
+
+Per-stage outputs (`ambient/`, `barcoderank/`, `nuclear_fraction/`, `filterbycount/`, `doubletfinder/`,
+`scdblfinder/`) keep the statistics tables and figures. Every figure is written as a vector PDF with
+editable text alongside a PNG for the HTML report.
 
 <!--
 ### An example

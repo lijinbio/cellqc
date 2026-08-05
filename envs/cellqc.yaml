@@ -1,0 +1,41 @@
+# cellqc v0.2.0 runtime environment.
+# Everything here comes from conda-forge/bioconda. The ONLY component that is
+# not conda-installable is DoubletFinder (GitHub-only); see README.md.
+name: cellqc
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  # --- workflow / CLI ---
+  - python=3.12
+  - snakemake-minimal>=8
+  - click
+  - pandas
+  - pyyaml
+  - jinja2
+  # --- python analysis stack ---
+  - numpy
+  - scipy
+  - h5py
+  - matplotlib-base
+  - scanpy
+  - anndata
+  - leidenalg
+  - pysam
+  # --- PDF slide report ---
+  - tectonic
+  # --- R analysis stack ---
+  - r-base>=4.4
+  - r-seurat>=5
+  - r-seuratobject>=5
+  - r-soupx
+  - r-ggplot2
+  - r-dplyr
+  - r-remotes
+  - r-rocr
+  - r-fields
+  - r-kernsmooth
+  - bioconductor-dropletutils
+  - bioconductor-zellkonverter
+  - bioconductor-scdblfinder
+  - bioconductor-celda   # DecontX

@@ -1,107 +1,123 @@
 # vim: set noexpandtab tabstop=2 shiftwidth=2 softtabstop=-1 fileencoding=utf-8:
+"""Self-contained HTML QC report.
 
+Every figure is inlined as a base64 data URI so the file can be emailed or
+archived on its own. PNG twins are used here because an <img> cannot render the
+vector PDFs; the PDFs go into the slide deck.
+"""
+
+import base64
+import mimetypes
 import os
 import sys
-import pandas as pd
 from pathlib import Path
-import mimetypes
-import base64
+
+import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 
+from cellqc import __version__, reportdata
+
+samples = snakemake.params['samples']
+sampledir = snakemake.params['sampledir']
+config = snakemake.params['config']
+nf_samples = snakemake.params['nf_samples']
+callers = snakemake.params['callers']
+outfile = snakemake.output[0]
+
+TEMPLATE_DIR = Path(__file__).parent / 'template'
+
+
 # From snakemake/report/__init__.py
-def data_uri(data, filename, encoding="utf8", mime="text/plain"):
-	"""Craft a base64 data URI from file with proper encoding and mimetype."""
-	data=base64.b64encode(data)
-	uri="data:{mime};charset={charset};filename={filename};base64,{data}" "".format(
-		filename=filename, mime=mime, charset=encoding, data=data.decode("utf-8")
-		)
-	return uri
+def data_uri(data, filename, encoding='utf8', mime='text/plain'):
+	data = base64.b64encode(data)
+	return 'data:{mime};charset={charset};filename={filename};base64,{data}'.format(
+		filename=filename, mime=mime, charset=encoding, data=data.decode('utf-8'))
 
-def mime_from_file(file):
-	mime, encoding=mimetypes.guess_type(file)
+
+def data_uri_from_file(file, defaultenc='utf8'):
+	file = str(file)
+	mime, encoding = mimetypes.guess_type(file)
 	if mime is None:
-		mime="text/plain"
-		print(f"Could not detect mimetype for {file}, assuming text/plain.", file=sys.stderr)
-	return mime, encoding
-
-def data_uri_from_file(file, defaultenc="utf8"):
-	"""Craft a base64 data URI from file with proper encoding and mimetype."""
-	if isinstance(file, Path):
-		file=str(file)
-	mime, encoding=mime_from_file(file)
+		mime = 'text/plain'
+		print(f'Could not detect mimetype for {file}, assuming text/plain.', file=sys.stderr)
 	if encoding is None:
-		encoding=defaultenc
-	with open(file, "rb") as f:
+		encoding = defaultenc
+	with open(file, 'rb') as f:
 		return data_uri(f.read(), os.path.basename(file), encoding, mime)
 
-# From snakemake/report/data/common.py
+
 def get_resource_as_string(path):
-	return open(Path(__file__).parent / "template" / path).read()
+	return open(TEMPLATE_DIR / path).read()
 
-env=Environment(loader=FileSystemLoader(Path(__file__).parent / "template"))
-env.filters["get_resource_as_string"]=get_resource_as_string
-template=env.get_template("index.html.jinja2")
 
-## Cellranger metrics summary
-tmp=[]
-for k, v in snakemake.params.samples['cellranger'].to_dict().items():
-	vf=os.path.join(snakemake.params.sampledir, f"{v}/metrics_summary.csv")
-	if os.path.exists(vf):
-		x=pd.read_csv(vf)
-		x.insert(0, 'sampleid', k)
-		tmp+=[x]
-_cellrangersummary=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
+def to_html(df):
+	if df is None or not len(df):
+		return None
+	return df.to_html(index=False, na_rep='', float_format=lambda v: f'{v:,.4g}')
 
-## SoupX
-tmp=[pd.read_csv(f, sep='\t', header=0) for f in snakemake.input.soupxrhoEst]
-_soupxrhoEst=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
-_soupxrho={f : data_uri_from_file(f) for f in snakemake.input.soupxrho}
 
-## Dropkick
-tmp=[pd.read_csv(f, sep='\t', header=0) for f in snakemake.input.dropkickstat]
-_dropkickstat=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
-_dropkicksummary={f : data_uri_from_file(f) for f in snakemake.input.dropkicksummary} if len(snakemake.input.dropkicksummary)>0 else None
-_dropkickscore={f : data_uri_from_file(f) for f in snakemake.input.dropkickscore} if len(snakemake.input.dropkickscore)>0 else None
+def figure_sections(data):
+	"""Ordered figure blocks, each a list of (sample, data_uri)."""
+	spec = [
+		('barcoderank', 'Barcode rank',
+			'Cell Ranger EmptyDrops call (dashed) against the UMI-rank curve. '
+			'Diagnostic only — cellqc does not re-call cells.'),
+		('ambient', f"Ambient RNA — {data['ambient_method']} (applied)",
+			'Estimated contamination fraction. This correction modified the counts.'),
+		('violin_before', 'QC metrics before filtering',
+			'Dashed lines mark the applied thresholds.'),
+		('violin_after', 'QC metrics after filtering', ''),
+		('nf', 'Nuclear fraction vs UMI depth',
+			'Intronic / (intronic + exonic) reads per cell. Reported only — '
+			'NOT used for filtering.'),
+		('doubletfinder_pANN', 'DoubletFinder — pANN', ''),
+		('doubletfinder_umap', 'DoubletFinder — calls on UMAP', ''),
+		('scdblfinder_score', 'scDblFinder — score',
+			'Run with the same expected doublet rate as DoubletFinder. Diagnostic only.'),
+		]
+	out = []
+	for key, title, blurb in spec:
+		paths = data['figures'].get(key, {})
+		imgs = []
+		for sid, pattern in paths.items():
+			png = pattern.format(ext='png')
+			if os.path.exists(png):
+				imgs.append((sid, data_uri_from_file(png)))
+		if imgs:
+			out.append({'title': title, 'blurb': blurb, 'images': imgs})
+	return out
 
-## Filterbycounts
-tmp=[pd.read_csv(f'{dir}/filter_ncell.txt', sep='\t', header=0) for dir in snakemake.input.filterbycountdir]
-_filterbycountncell=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
-_filterbycountpltbf={dir : data_uri_from_file(f'{dir}/feature_bf.png') for dir in snakemake.input.filterbycountdir}
-_filterbycountpltaf={dir : data_uri_from_file(f'{dir}/feature_af.png') for dir in snakemake.input.filterbycountdir}
 
-## DoubletFinder
-pK=snakemake.params.pK
-tmp=[pd.read_csv(f'{dir}/doublet_ratio.txt', sep='\t', header=0) for dir in snakemake.input.doubletfinderdir]
-_doubletratio=pd.concat(tmp, ignore_index=True).to_html() if len(tmp)>0 else None
-_doubletpannviolin={dir : data_uri_from_file(f'{dir}/pANN_violin_pK{pK}.png') for dir in snakemake.input.doubletfinderdir}
-_doublettsne={dir : data_uri_from_file(f'{dir}/tsne_doublet_pK{pK}.png') for dir in snakemake.input.doubletfinderdir}
-_doubletumap={dir : data_uri_from_file(f'{dir}/umap_doublet_pK{pK}.png') for dir in snakemake.input.doubletfinderdir}
+def main():
+	data = reportdata.collect(samples, sampledir, config, nf_samples, callers)
 
-## scPred
-_scpredcontingency={dir : pd.read_csv(f'{dir}/contingency.txt', sep='\t', header=0).to_html() for dir in snakemake.input.scpreddir} if len(snakemake.input.scpreddir)>0 else None
-_scpredfeaturemax={dir : data_uri_from_file(f'{dir}/feature_scpred_max.png') for dir in snakemake.input.scpreddir} if len(snakemake.input.scpreddir)>0 else None
-_scpredpredictumap={dir : data_uri_from_file(f'{dir}/predict_umap.png') for dir in snakemake.input.scpreddir} if len(snakemake.input.scpreddir)>0 else None
+	env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
+	env.filters['get_resource_as_string'] = get_resource_as_string
+	template = env.get_template('index.html.jinja2')
 
-## Render report file from a Jinja template
-outfile=snakemake.output[0]
-with open(outfile, mode="w", encoding="utf-8") as f:
-	f.write(
-		template.render(
-			cellrangersummary=_cellrangersummary,
-			soupxrhoEst=_soupxrhoEst,
-			soupxrho=_soupxrho,
-			dropkickstat=_dropkickstat,
-			dropkicksummary=_dropkicksummary,
-			dropkickscore=_dropkickscore,
-			filterbycountncell=_filterbycountncell,
-			filterbycountpltbf=_filterbycountpltbf,
-			filterbycountpltaf=_filterbycountpltaf,
-			doubletratio=_doubletratio,
-			doubletpannviolin=_doubletpannviolin,
-			doublettsne=_doublettsne,
-			doubletumap=_doubletumap,
-			scpredcontingency=_scpredcontingency,
-			scpredfeaturemax=_scpredfeaturemax,
-			scpredpredictumap=_scpredpredictumap,
-			)
+	html = template.render(
+		version=__version__,
+		seed=data['seed'],
+		nsample=len(data['sample_ids']),
+		ambient_method=data['ambient_method'],
+		ambient_compare=data['ambient_compare'],
+		callers=data['callers'],
+		decider=data['decider'],
+		cascade=to_html(data['cascade']),
+		cellrangersummary=to_html(data['cellranger_metrics']),
+		barcoderank=to_html(data['barcoderank']),
+		ambient=to_html(data['ambient']),
+		filterncell=to_html(data['filter_ncell']),
+		doubletsummary=to_html(data['doublet_summary']),
+		concordance=to_html(data['concordance']),
+		sections=figure_sections(data),
+		caveats=data['caveats'],
 		)
+
+	with open(outfile, mode='w', encoding='utf-8') as f:
+		f.write(html)
+	print(f'[qcreport] wrote {outfile}', flush=True)
+
+
+if __name__ == '__main__':
+	main()

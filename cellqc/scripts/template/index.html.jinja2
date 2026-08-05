@@ -1,247 +1,112 @@
 <!doctype html>
-
 <html lang="en">
-
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <title>QC Report</title>
+    <title>cellqc QC report</title>
     <style>{{ "style.css"|get_resource_as_string }}</style>
   </head>
-
   <body>
+
     <div class="result">
+      <div class="heading"><h1>cellqc QC report</h1></div>
+      <p class="meta">
+        cellqc v{{ version }} &nbsp;|&nbsp; {{ nsample }} sample{{ 's' if nsample != 1 }}
+        &nbsp;|&nbsp; random seed {{ seed }}
+        &nbsp;|&nbsp; ambient: <strong>{{ ambient_method }}</strong>{% if ambient_compare %}
+        (compared, not applied: {{ ambient_compare|join(', ') }}){% endif %}
+        &nbsp;|&nbsp; doublets:
+        {%- if callers %} {{ callers|join(', ') }}
+        {%- if decider %} (cells removed by <strong>{{ decider }}</strong> only){% endif %}
+        {%- else %} skipped{% endif %}
+      </p>
+    </div>
+
+    {% if cascade is not none %}
+    <div class="result">
+      <div class="heading"><h1>Cells retained at each stage</h1></div>
+      <p class="blurb">Every exclusion is the difference between two adjacent columns.</p>
+      <div class="outer-wrapper"><div class="table-wrapper">{{ cascade }}</div></div>
+    </div>
+    {% endif %}
+
     {% if cellrangersummary is not none %}
-      <div class="heading">
-        <h1>CellRanger metrics summary</h1>
-      </div>
-      <div class="outer-wrapper">
-        <div class="table-wrapper">
-          {{ cellrangersummary }}
-        </div>
-      </div>
-    {% endif %}
-    </div>
-
     <div class="result">
-    {% if soupxrhoEst is not none %}
-      <div class="heading">
-        <h1>Soupx: estimated contamination fraction </h1>
-      </div>
-      <div class="outer-wrapper">
-        <div class="table-wrapper">
-          {{ soupxrhoEst }}
-        </div>
-      </div>
-    {% endif %}
+      <div class="heading"><h1>Cell Ranger metrics summary</h1></div>
+      <div class="outer-wrapper"><div class="table-wrapper">{{ cellrangersummary }}</div></div>
     </div>
-
-    <div class="result">
-      <div class="heading">
-        <h2> Global contamination fraction estimate  </h2>
-      </div>
-    {% for file, datauri in soupxrho.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-    </div>
-
-    <div class="result">
-    {% if dropkickstat is not none %}
-      <div class="heading">
-        <h1>Dropkick: filtering empty droplets </h1>
-      </div>
-      <div class="outer-wrapper">
-        <div class="table-wrapper">
-          {{ dropkickstat }}
-        </div>
-      </div>
-
-      <div class="heading">
-        <h2> Dropkick: QC summary </h2>
-      </div>
-    {% for file, datauri in dropkicksummary.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-
-      <div class="heading">
-        <h2> Dropkick: training set and classification probability </h2>
-      </div>
-    {% for file, datauri in dropkickscore.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-
-    {% endif %}
-    </div>
-
-    <div class="result">
-    {% if filterbycountncell is not none %}
-      <div class="heading">
-        <h1> Filter cells by count </h1>
-      </div>
-      <div class="outer-wrapper">
-        <div class="table-wrapper">
-          {{ filterbycountncell }}
-        </div>
-      </div>
     {% endif %}
 
-      <div class="heading">
-        <h2> Violin plot before filtering </h2>
-      </div>
-    {% for file, datauri in filterbycountpltbf.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-
-      <div class="heading">
-        <h2> Violin plot after filtering </h2>
-      </div>
-    {% for file, datauri in filterbycountpltaf.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-    </div>
-
+    {% if barcoderank is not none %}
     <div class="result">
-    {% if doubletratio is not none %}
-      <div class="heading">
-        <h1> Doublet removal by DoubletFinder </h1>
-      </div>
-      <div class="outer-wrapper">
-        <div class="table-wrapper">
-          {{ doubletratio }}
-        </div>
-      </div>
+      <div class="heading"><h1>Barcode ranks</h1></div>
+      <p class="blurb">Knee and inflection are descriptive annotations. Cell calling is Cell Ranger EmptyDrops; cellqc does not re-call cells.</p>
+      <div class="outer-wrapper"><div class="table-wrapper">{{ barcoderank }}</div></div>
+    </div>
     {% endif %}
 
-      <div class="heading">
-        <h2> Violin plot of pANN (percentage of artificial nearest neighbors) </h2>
-      </div>
-    {% for file, datauri in doubletpannviolin.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-
-      <div class="heading">
-        <h2> TSNE: color by classification </h2>
-      </div>
-    {% for file, datauri in doublettsne.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-
-      <div class="heading">
-        <h2> UMAP: color by classification </h2>
-      </div>
-    {% for file, datauri in doubletumap.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-
-    </div>
-
+    {% if ambient is not none %}
     <div class="result">
-    {% if scpredcontingency is not none %}
-      <div class="heading">
-        <h1> Contingency table between predicted cell types and cell clusters </h1>
-      </div>
-    {% for file, contingency in scpredcontingency.items() -%}
-      <div class="contingency">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="outer-wrapper">
-          <div class="table-wrapper">
-            {{ contingency }}
-          </div>
-        </div>
-      </div>
-    {% endfor %}
-
-      <div class="heading">
-        <h2> Max classification probabilities </h2>
-      </div>
-    {% for file, datauri in scpredfeaturemax.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-
-      <div class="heading">
-        <h2> Predicted cell types </h2>
-      </div>
-    {% for file, datauri in scpredpredictumap.items() -%}
-      <div class="png">
-        <div class="heading">
-          <h2> {{ file }} </h2>
-        </div>
-        <div class="img-wrapper">
-          <img src="{{ datauri }}#fitW&toolbar=0" title="{{ file }}" width="100%"> </img>
-        </div>
-      </div>
-    {% endfor %}
-
+      <div class="heading"><h1>Ambient RNA contamination</h1></div>
+      <p class="blurb">
+        Only the row with <code>applied=True</code> modified the counts. Any other row is a
+        comparison estimate, present so disagreement between methods is visible.
+      </p>
+      <div class="outer-wrapper"><div class="table-wrapper">{{ ambient }}</div></div>
+    </div>
     {% endif %}
+
+    {% if filterncell is not none %}
+    <div class="result">
+      <div class="heading"><h1>Filtering by counts, genes and % mitochondrial</h1></div>
+      <p class="blurb">
+        Per-criterion columns attribute every exclusion. Criteria overlap, so the
+        <code>fail_*</code> columns sum to more than <code>ncell_removed</code>; the
+        <code>*_only</code> and <code>fail_multiple</code> columns partition it exactly.
+      </p>
+      <div class="outer-wrapper"><div class="table-wrapper">{{ filterncell }}</div></div>
+    </div>
+    {% endif %}
+
+    {% if doubletsummary is not none %}
+    <div class="result">
+      <div class="heading"><h1>Doublet detection</h1></div>
+      <div class="outer-wrapper"><div class="table-wrapper">{{ doubletsummary }}</div></div>
+      {% if concordance is not none %}
+      <div class="heading"><h2>Caller concordance</h2></div>
+      <p class="blurb">
+        Cohen's &kappa; is a <em>consistency</em> measure, not an accuracy measure. With no
+        ground-truth doublets neither caller can be shown superior on this data. A low &kappa;
+        (&lt; ~0.5) means the doublet call is unstable for that sample.
+      </p>
+      <div class="outer-wrapper"><div class="table-wrapper">{{ concordance }}</div></div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% for section in sections %}
+    <div class="result">
+      <div class="heading"><h1>{{ section.title }}</h1></div>
+      {% if section.blurb %}<p class="blurb">{{ section.blurb }}</p>{% endif %}
+      {% for sid, datauri in section.images %}
+      <div class="png">
+        <div class="heading"><h2>{{ sid }}</h2></div>
+        <div class="img-wrapper">
+          <img src="{{ datauri }}" title="{{ sid }}" width="100%">
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <div class="result caveats">
+      <div class="heading"><h1>Limitations to carry with these results</h1></div>
+      <ul>
+      {% for c in caveats %}
+        <li>{{ c }}</li>
+      {% endfor %}
+      </ul>
     </div>
 
   </body>
-
 </html>

@@ -7,7 +7,10 @@ import ast
 
 from setuptools import setup, find_packages
 
-DEPENDENCIES=['click', 'snakemake', 'pygraphviz', 'Jinja2']
+# Only what the CLI and the workflow scripts import directly. The heavy analysis
+# stack (scanpy, pysam, and the whole R side) comes from envs/cellqc.yaml -- pip
+# cannot install R packages, so declaring them here would be a lie.
+DEPENDENCIES=['click', 'snakemake', 'Jinja2', 'pandas', 'PyYAML']
 EXCLUDE_FROM_PACKAGES=["contrib", "docs", "tests*"]
 CURDIR=os.path.abspath(os.path.dirname(__file__))
 
@@ -38,7 +41,7 @@ setup(
     setup_requires=[],
     entry_points={
         "console_scripts": [
-            "cellqc=cellqc.cellqc:main",
+            "cellqc=cellqc.cli:main",
             ]
         },
     url="https://github.com/lijinbio/cellqc",

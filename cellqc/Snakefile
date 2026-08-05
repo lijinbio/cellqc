@@ -2,35 +2,26 @@ from snakemake.utils import min_version
 min_version("7.0")
 
 include: "rules/config.smk"
+include: "rules/common.smk"
 
 rule all:
   input:
-    expand(
-    [
-      "result/{sample}.h5ad",
-      "postproc/{sample}.h5ad",
-    ],
-    sample=samples["sample"].tolist(),
-    ),
-    "result/report.html",
+    final_targets(),
 
-include: "rules/common.smk"
-
-include: "rules/soupx.smk"
+include: "rules/ambient.smk"
+include: "rules/barcoderank.smk"
 include: "rules/nuclear_fraction.smk"
-
-if not config["dropkick"]["skip"]:
-  include: "rules/dropkick.smk"
-  include: "rules/h5subset.smk"
-
 include: "rules/filterbycount.smk"
 
-if not config["doubletfinder"]["skip"]:
+# Doublet callers are selected by config, not by conditional rule inclusion.
+# Both rule files are always defined; `doublet_callers` decides which outputs are
+# ever requested, and `doublet.decider` decides which one removes cells. That
+# keeps the DAG shape fixed no matter how the callers are configured.
+if not config["doublet"]["skip"]:
   include: "rules/doubletfinder.smk"
+  include: "rules/scdblfinder.smk"
 
-if not config["scpred"]["skip"]:
-  include: "rules/scpred.smk"
-
-include: "rules/h5seurat2h5ad.smk"
-include: "rules/qcreport.smk"
+include: "rules/filterdoublet.smk"
 include: "rules/postproc.smk"
+include: "rules/qcreport.smk"
+include: "rules/slidereport.smk"

@@ -111,8 +111,11 @@ Authors: Jin Li <lijin.abc@gmail.com>
 		runcmd(cmdstr)
 
 	else:
+		# --use-conda is gone: v0.2.0 runs from a single environment
+		# (envs/cellqc.yaml), so there are no per-rule conda directives for it to
+		# act on and it only slowed startup.
 		cmdstr+=[
-			f"--printshellcmds --debug-dag --skip-script-cleanup --verbose --use-conda",
+			f"--printshellcmds --skip-script-cleanup",
 			]
 		runcmd(cmdstr)
 
