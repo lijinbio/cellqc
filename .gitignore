@@ -1,25 +1,38 @@
-*.pyc
-venv/
-bin/
-build/
-develop-eggs/
-dist/
-eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
+# Python
+__pycache__/
+*.py[cod]
 *.egg
-*.eggs
-.mypy_cache/
-.vscode
-main
-.DS_Store
-.snakemake
+*.egg-info/
+.eggs/
+
+# Packaging artifacts. Packaging is pyproject.toml (setuptools); the
+# buildout/virtualenv-era entries this file used to carry (bin/, lib/, lib64/,
+# parts/, var/, develop-eggs/, .installed.cfg) never matched anything here, and
+# lib/ would have silently swallowed a real directory if one were ever added.
+build/
+dist/
+sdist/
+*.whl
+
+# Environments
+venv/
+.venv/
+
+# Snakemake working state, if a run is launched inside the tree
+.snakemake/
 .snakemake_timestamp
+
+# A run's outputs, if -d|--outdir points into the tree
+out/
+config_*.yaml
+samples_*.txt
+
+# Editors / tooling / OS
+.vscode/
+.mypy_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
 .sw?
 .*.sw?
 .nfs*
