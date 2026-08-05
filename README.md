@@ -229,7 +229,9 @@ cellqc -d "$outdir" -t 8 -n -- samples.txt              # dry run; writes outdir
 The dry run writes the fully resolved configuration, defaults included, to `outdir/config_<timestamp>.yaml`
 — copy that file, edit it, and pass it back with `-c`.
 
-Snakemake builds this job DAG (two samples, both with a BAM, both doublet callers enabled):
+Snakemake builds this job DAG — one sample with a BAM, both doublet callers enabled. Every rule above
+`qcreport`/`slidereport` repeats per sample; the two report rules take all samples at once, which is the
+only place the graph widens:
 
 ![DAG](docs/tests/dag.png)
 
