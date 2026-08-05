@@ -33,7 +33,9 @@ dependencies:
   - r-seurat>=5
   - r-seuratobject>=5
   - r-matrix
-  - r-soupx
+  # SoupX upstream has been dormant since 1.6.2 (2022-11-01); the floor asks for
+  # that final release rather than letting a constrained solve pick an older one.
+  - r-soupx>=1.6.2
   - r-ggplot2
   - bioconductor-dropletutils
   - bioconductor-singlecellexperiment
