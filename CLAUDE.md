@@ -29,6 +29,12 @@ source "$(conda info --base)/etc/profile.d/conda.sh" && conda activate cellqc_v0
 - **Slurm jobs must not use the session scratchpad**: `/tmp` is node-local, so a compute node cannot see
   it. Use a `/dfs3b` path.
 - `bioconda`'s `cellbender` pins `python=3.7` and cannot share this environment.
+- **Resuming a preempted run needs `snakemake --unlock` first**, or every restart dies with
+  `LockException` before doing any work, and `--rerun-incomplete` after that for the half-written output
+  the killed rule left. The `cellqc` CLI passes neither flag through, so a resume calls Snakemake directly
+  — see `tests/README.md`. `#SBATCH --requeue` did *not* resubmit preempted jobs on this cluster; they
+  ended in state `PREEMPTED`. Never `rm -rf` the outdir to "start clean": that discards every completed
+  stage and makes the next preemption cost the whole run again.
 
 ### Validation status (reference sample GSE188280, CR 10.0.0, 13,559 cells)
 

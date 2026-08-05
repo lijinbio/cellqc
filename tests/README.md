@@ -48,3 +48,34 @@ cellqc -d out -t 16 -- samples.txt
 Expected: 13,559 → 11,234 cells (count filter) → 10,223 (doublets); DoubletFinder 1,011 (9.00%) vs
 scDblFinder 1,153 (10.26%), Cohen's κ = 0.759. With the default seed the run is reproducible — a repeat
 gives an identical matrix. Example outputs are in `docs/tests/`.
+
+### Resuming an interrupted run
+
+On a preemptible queue this run *will* be interrupted — the BAM pass alone is minutes of the wall clock.
+Snakemake resumes from completed outputs, so a restart only costs the rule that was in flight, but two
+things get in the way and neither is obvious from the error:
+
+1. **A killed run leaves a stale lock.** Every restart then dies with `LockException: Directory cannot be
+   locked` before doing any work. Clear it with `--unlock` first.
+2. **The interrupted rule left a half-written output.** Snakemake refuses to trust it and asks for
+   `--rerun-incomplete`.
+
+The `cellqc` CLI does not pass Snakemake flags through, so a resume calls Snakemake directly with the
+arguments the CLI builds:
+
+```bash
+pkg=$(python -c "import cellqc, pathlib; print(pathlib.Path(cellqc.__file__).parent)")
+common=(--snakefile "$pkg/Snakefile" --directory out
+        --config samplefile=samples.txt outdir=out configfile=config.yaml nowtimestr=resume
+        --configfile config.yaml)
+
+snakemake "${common[@]}" --unlock                       # only needed after a kill
+snakemake "${common[@]}" --cores 16 --jobs 16 --rerun-incomplete
+```
+
+Do not delete the output directory to "start clean" — that throws away every completed stage and makes the
+next preemption cost the whole run again.
+
+Note also that `#SBATCH --requeue` is not a substitute: on the cluster this was developed on, preempted
+jobs ended in state `PREEMPTED` and were never resubmitted, so the resume has to be driven by hand or by a
+resubmit loop.
