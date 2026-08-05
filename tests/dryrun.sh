@@ -33,7 +33,7 @@ dry
 say $? 'the workflow builds a DAG'
 
 for f in result/WITHBAM.h5ad result/WITHBAM_obs.txt.gz result/WITHBAM_var.txt.gz \
-	filterdoublet/WITHBAM.h5ad result/report.html result/report_slides.pdf; do
+	filterdoublet/WITHBAM.h5ad result/report.html result/report_slides.pdf result/metrics.csv; do
 	grep -q "$f" "$tmp/log"
 	say $? "produces $f"
 done

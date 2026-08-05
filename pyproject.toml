@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cellqc"
+description = "Cellqc standardizes the quality control of single-cell RNA-Seq (scRNA) data to render clean feature count matrices."
+readme = "README.md"
+# The runtime environment is Python 3.12 (envs/cellqc.yaml); 3.9 is the oldest
+# the CLI and the workflow scripts are known to import on.
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Jin Li", email = "lijin.abc@gmail.com" }]
+keywords = ["single-cell", "RNA-seq", "quality control", "snakemake"]
+classifiers = [
+	"Development Status :: 2 - Pre-Alpha",
+	"Natural Language :: English",
+	"Programming Language :: Python :: 3",
+]
+
+# Only what the CLI and the workflow scripts import directly. The heavy analysis
+# stack (scanpy, pysam, and the whole R side) comes from envs/cellqc.yaml -- pip
+# cannot install R packages, so declaring them here would be a lie.
+dependencies = [
+	"click",
+	"snakemake",
+	"Jinja2",
+	"pandas",
+	"PyYAML",
+]
+
+# Single-sourced from cellqc/__init__.py so the package, the CLI's --version and
+# the CHANGELOG cannot disagree.
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/lijinbio/cellqc"
+Changelog = "https://github.com/lijinbio/cellqc/blob/master/CHANGELOG.md"
+
+[project.scripts]
+cellqc = "cellqc.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "cellqc.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["cellqc*"]
+
+# The workflow is data, not importable modules: Snakemake reads these files off
+# disk at runtime, so they have to ship inside the package.
+[tool.setuptools.package-data]
+cellqc = [
+	"Snakefile",
+	"rules/*.smk",
+	"schemas/*.yaml",
+	"scripts/*.py",
+	"scripts/*.R",
+	"scripts/template/*",
+]

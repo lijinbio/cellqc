@@ -15,6 +15,15 @@
 
 ## Changed
 
+- Packaging moved from `setup.py` to a PEP 621 `pyproject.toml` (setuptools backend). Metadata is
+  declarative, the version is still single-sourced from `cellqc/__init__.py`, the license is an SPDX
+  expression, and the workflow files ship via `[tool.setuptools.package-data]`. `MANIFEST.in` now only adds
+  what an sdist needs beyond the package, and no longer sweeps `CLAUDE.md` into the distribution.
+- The nuclear fraction stays on the pysam implementation. Switching to DropletQC was considered and
+  rejected: it is unmaintained (still `0.0.0.9000`, never released), it is GitHub-only, and its dependency
+  closure adds ~15 R packages (`GenomicFeatures`, `rtracklayer`, `ggpubr`, …) to an environment that does
+  not otherwise need them. `tests/validate_nuclear_fraction.py` remains as the evidence that the two agree
+  (r = 1.000000, max |Δ| = 5.7e-4 over 13,559 barcodes).
 - Figures: PNG output raised from 200 to 300 dpi and rasterized layers inside the vector PDFs from 500 to
   600 dpi. Both reports get the higher-resolution PNGs, so `result/report.html` grows accordingly. The R
   steps (`ggsave`, `png`) carry the same numbers — change them together with `cellqc/qcutil.py`.
@@ -28,6 +37,11 @@
 
 ## Added
 
+- `result/metrics.csv`: every scalar the run produced, one row per sample — Cell Ranger metrics, knee and
+  inflection, ambient contamination per method, per-criterion filter counts, each doublet caller's count
+  and their concordance, nuclear-fraction quartiles, retained fraction. Assembled from the same
+  `reportdata.collect()` the reports use, so it cannot disagree with them, and it means nothing downstream
+  has to scrape a number out of the HTML. 76 columns on the reference sample.
 - `.obs` and `.var` are written beside every kept matrix as gzipped TSVs (`{sample}_obs.txt.gz`,
   `{sample}_var.txt.gz`), indexed by `barcode` and `gene`, so the per-cell QC metrics and the feature table
   can be read and joined without anndata.

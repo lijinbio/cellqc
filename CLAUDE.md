@@ -76,7 +76,11 @@ Figures in `docs/` are generated: `bash docs/make_figures.sh` renders `docs/work
 `docs/workflow.dot` and `docs/tests/dag.png` from the workflow itself. Do not hand-edit the PNGs — the
 v0.1.0 diagram went stale for a whole release because it existed only as a PNG.
 
-The analysis stack lives in `envs/cellqc.yaml`, not `setup.py` (pip cannot install R packages). `setup.py` declares only what the CLI itself imports. The bioconda recipe is maintained separately at `../bioconda-recipes/recipes/cellqc/meta.yaml`.
+The analysis stack lives in `envs/cellqc.yaml`, not `pyproject.toml` (pip cannot install R packages).
+`pyproject.toml` declares only what the CLI itself imports. The bioconda recipe is maintained separately at
+`../bioconda-recipes/recipes/cellqc/meta.yaml`, and it is the only place the R dependencies are declared as
+installable — with the exception of DoubletFinder, which is GitHub-only and cannot be a conda dependency at
+all (bioconda forbids network access at install time; the fix would be a separate `r-doubletfinder` recipe).
 
 ## Architecture
 
@@ -139,6 +143,10 @@ change them together.
 
 ## Conventions
 
-- Packaging: new files under `cellqc/` must be covered by `MANIFEST.in` (it grafts `rules/`, `schemas/`, `scripts/`, `envs/`) or they will be missing from the sdist.
-- Version lives only in `cellqc/__init__.py`; `setup.py` parses it. Bump it together with a `CHANGELOG.md` entry.
+- Packaging is PEP 621 `pyproject.toml` (setuptools backend); there is no `setup.py`. New files under
+  `cellqc/` must be covered by `[tool.setuptools.package-data]` or they will be missing from the wheel —
+  the workflow is data, not modules, so Snakemake reads it off disk at runtime. `MANIFEST.in` only adds the
+  extra files an sdist needs (`README.md`, `CHANGELOG.md`, `LICENSE`, `envs/`).
+- Version lives only in `cellqc/__init__.py`; `pyproject.toml` reads it via `dynamic = ["version"]`. Bump it
+  together with a `CHANGELOG.md` entry.
 - Indentation is inconsistent by design of the original author and enforced by vim modelines: `rules/*.smk` use 2 spaces; `cellqc.py`, `config.smk`, and `scripts/*.py` use **tabs** with `tabstop=2`. Match the file you are editing.

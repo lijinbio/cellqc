@@ -82,9 +82,116 @@ def collect(samples, sampledir, config, nf_samples, callers):
 	if 'scdblfinder' in callers:
 		data['figures']['scdblfinder_score'] = {s: _stage(s, 'scdblfinder/{sample}_score.{ext}') for s in ids}
 
+	data['nf_summary'] = nf_summary(nf_samples)
 	data['cascade'] = cascade(data, ids)
+	data['metrics'] = metrics_table(data, ids)
 	data['caveats'] = caveats(data)
 	return data
+
+
+def nf_summary(nf_samples):
+	"""Per-sample nuclear-fraction summary, for the metrics table.
+
+	The step writes one row per barcode; the cohort table wants one number per
+	sample. Samples without a Cell Ranger BAM have no file and are simply absent,
+	which is why the metrics row shows blanks rather than zeros for them.
+	"""
+	rows = []
+	for sid in nf_samples:
+		path = _stage(sid, 'nuclear_fraction/{sample}.txt.gz')
+		if not os.path.exists(path):
+			continue
+		df = pd.read_csv(path, sep='\t', header=0)
+		nf = pd.to_numeric(df['nuclear_fraction'], errors='coerce')
+		rows.append({
+			'sampleid': sid,
+			'ncell': int(len(df)),
+			'median': float(np.nanmedian(nf)) if len(nf) else np.nan,
+			'q25': float(np.nanquantile(nf, 0.25)) if len(nf) else np.nan,
+			'q75': float(np.nanquantile(nf, 0.75)) if len(nf) else np.nan,
+			'n_missing': int(nf.isna().sum()),
+			})
+	return pd.DataFrame(rows) if rows else None
+
+
+def metrics_table(data, ids):
+	"""Every scalar the run produced, one row per sample.
+
+	Written to result/metrics.csv. The reports are for reading; this is for
+	joining -- a cohort summary, a spreadsheet, or a downstream script that
+	should not have to parse six stage-specific stats files, and must never have
+	to scrape a number out of the HTML.
+
+	Column names are namespaced by stage, and any name that depends on a
+	configured method carries that method in it, so adding a caller or a backend
+	adds columns instead of changing the meaning of existing ones.
+	"""
+	def sub(table, sid):
+		if table is None or 'sampleid' not in getattr(table, 'columns', []):
+			return None
+		m = table[table['sampleid'] == sid]
+		return m if len(m) else None
+
+	rows = []
+	for sid in ids:
+		row = {'sampleid': sid}
+
+		cr = sub(data['cellranger_metrics'], sid)
+		if cr is not None:
+			for col in cr.columns:
+				if col != 'sampleid':
+					row['cellranger_' + col.strip().lower().replace(' ', '_')] = cr[col].iloc[0]
+
+		knee = sub(data['barcoderank'], sid)
+		if knee is not None:
+			for col in knee.columns:
+				if col != 'sampleid':
+					row['barcoderank_' + col] = knee[col].iloc[0]
+
+		amb = sub(data['ambient'], sid)
+		if amb is not None:
+			for _, r in amb.iterrows():
+				name = r.get('method', 'ambient')
+				for col in amb.columns:
+					if col not in ('sampleid', 'method'):
+						row[f'ambient_{name}_{col}'] = r[col]
+
+		fil = sub(data['filter_ncell'], sid)
+		if fil is not None:
+			for col in fil.columns:
+				if col != 'sampleid':
+					row['filter_' + col] = fil[col].iloc[0]
+
+		dbl = sub(data['doublet_summary'], sid)
+		if dbl is not None:
+			for _, r in dbl.iterrows():
+				caller = r['caller']
+				row[f'doublet_{caller}_ndoublet'] = r.get('ndoublet')
+				row[f'doublet_{caller}_frac'] = r.get('frac_doublet')
+				if r.get('is_decider'):
+					row['doublet_decider'] = caller
+					row['doublet_ncell_before'] = r.get('ncell_before')
+					row['doublet_ncell_after'] = r.get('ncell_after')
+
+		conc = sub(data['concordance'], sid)
+		if conc is not None:
+			for _, r in conc.iterrows():
+				pair = f"{r['caller_a']}_vs_{r['caller_b']}"
+				row[f'concordance_{pair}_kappa'] = r.get('kappa')
+				row[f'concordance_{pair}_both_doublet'] = r.get('both_doublet')
+
+		nf = sub(data.get('nf_summary'), sid)
+		if nf is not None:
+			for col in nf.columns:
+				if col != 'sampleid':
+					row['nf_' + col] = nf[col].iloc[0]
+
+		casc = sub(data['cascade'], sid)
+		if casc is not None and 'frac_retained' in casc:
+			row['frac_retained'] = casc['frac_retained'].iloc[0]
+
+		rows.append(row)
+	return pd.DataFrame(rows)
 
 
 def cascade(data, ids):

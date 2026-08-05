@@ -32,7 +32,7 @@ digraph cellqc {
 	nf   [label="Nuclear fraction (pysam)\nrun when the sample has a BAM",
 		style="rounded,dashed,filled", color="#7a7a7a"];
 
-	reports [label="result/report.html\nresult/report_slides.pdf",
+	reports [label="result/report.html\nresult/report_slides.pdf\nresult/metrics.csv",
 		fillcolor="#f7f1e4", color="#a07a28"];
 
 	/* Main chain, weighted so it stays a straight vertical spine. */

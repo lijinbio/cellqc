@@ -2,7 +2,9 @@ rule qcreport:
   input:
     **report_inputs(),
   output:
-    "result/report.html",
+    html="result/report.html",
+    # Machine-readable twin of the report: every scalar, one row per sample.
+    metrics="result/metrics.csv",
   params:
     samples=lambda wildcards: samples,
     sampledir=sampledir,

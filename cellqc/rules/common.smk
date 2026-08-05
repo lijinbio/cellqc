@@ -81,5 +81,5 @@ def final_targets():
     sample=ids)
   targets += expand(["barcoderank/{sample}_barcoderank.pdf"], sample=ids)
   targets += expand(["nuclear_fraction/{sample}.txt.gz"], sample=nf_samples)
-  targets += ["result/report.html", "result/report_slides.pdf"]
+  targets += ["result/report.html", "result/report_slides.pdf", "result/metrics.csv"]
   return targets

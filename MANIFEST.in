@@ -1,15 +1,11 @@
-# Name the .md files rather than globbing them: CLAUDE.md is guidance for
-# coding agents working IN this repo and has no business inside an installed
-# package.
+# Packaging metadata lives in pyproject.toml; this file only adds the files an
+# sdist needs beyond the package itself. CLAUDE.md is guidance for coding agents
+# working IN this repo and has no business in a distribution, so the .md files
+# are named rather than globbed.
 include README.md CHANGELOG.md LICENSE
-include cellqc/Snakefile
-graft cellqc/rules
-graft cellqc/schemas
-graft cellqc/scripts
 graft envs
 
 exclude CLAUDE.md
-exclude .flake8 noxfile.py .coveragerc
 prune tests
 prune docs
 

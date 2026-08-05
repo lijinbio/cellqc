@@ -22,7 +22,8 @@ sampledir = snakemake.params['sampledir']
 config = snakemake.params['config']
 nf_samples = snakemake.params['nf_samples']
 callers = snakemake.params['callers']
-outfile = snakemake.output[0]
+outfile = snakemake.output['html']
+metricsfile = snakemake.output['metrics']
 
 TEMPLATE_DIR = Path(__file__).parent / 'template'
 
@@ -117,6 +118,13 @@ def main():
 	with open(outfile, mode='w', encoding='utf-8') as f:
 		f.write(html)
 	print(f'[qcreport] wrote {outfile}', flush=True)
+
+	# The machine-readable twin of the report: every scalar the run produced,
+	# one row per sample. Written here so it is assembled from the same
+	# reportdata.collect() call the HTML is, and cannot disagree with it.
+	data['metrics'].to_csv(metricsfile, index=False)
+	print(f'[qcreport] wrote {metricsfile} '
+		f"({data['metrics'].shape[0]} samples x {data['metrics'].shape[1]} metrics)", flush=True)
 
 
 if __name__ == '__main__':
