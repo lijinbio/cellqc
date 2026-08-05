@@ -210,6 +210,43 @@ vector PDF with editable text alongside a 300 dpi PNG for the HTML report.
 
 ### An example
 
+#### One sample
+
+No sample file needed — `-D` writes one for you:
+
+```bash
+cellqc -d out -t 8 \
+  -D sample:=:S1 \
+  -D cellranger:=:/path/to/cellranger/S1/outs
+```
+
+The `cellranger` path must be **absolute** here: `-D` writes `out/samples_<timestamp>.txt`, and relative
+paths in a sample file are resolved against that file's directory, which is the outdir. Add
+`-D nreaction:=:2` if the run pooled more than one 10x reaction, and `-c config.yaml` to change any
+threshold. That gives:
+
+```
+out/result/S1.h5ad            the final QC'd matrix
+out/result/S1_obs.txt.gz      per-cell QC metrics and doublet scores, indexed by barcode
+out/result/S1_var.txt.gz      the feature table, indexed by gene
+out/result/report.html        self-contained QC report
+out/result/report_slides.pdf  slide deck
+```
+
+Equivalently, with a one-line sample file — this is the form to prefer, because the file is a record of
+what was run and relative paths work in it:
+
+```samples.txt
+sample	cellranger	nreaction
+S1	/path/to/cellranger/S1/outs	1
+```
+
+```bash
+cellqc -d out -t 8 -- samples.txt
+```
+
+#### A cohort
+
 A sample file (e.g. `samples.txt`) for two samples:
 
 ```samples.txt
@@ -220,10 +257,10 @@ AMD2	/path/to/cellranger/AMD2/outs	1
 
 Run it with the installed entry point:
 
-```
-cellqc -d "$outdir" -t 8 -- samples.txt                 # default parameters
-cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt  # customized parameters
-cellqc -d "$outdir" -t 8 -n -- samples.txt              # dry run; writes outdir/config_<timestamp>.yaml
+```bash
+cellqc -d out -t 8 -- samples.txt                 # default parameters
+cellqc -d out -t 8 -c config.yaml -- samples.txt  # customized parameters
+cellqc -d out -t 8 -n -- samples.txt              # dry run; writes out/config_<timestamp>.yaml
 ```
 
 The dry run writes the fully resolved configuration, defaults included, to `outdir/config_<timestamp>.yaml`

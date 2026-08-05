@@ -43,36 +43,50 @@ def main(configfile, outdir, numthreads, dryrun, define, samplefile):
 cellqc: a quality control pipeline of single-cell RNA-Seq data.
 
 SAMPLEFILE is a tab-delimited file with headers, providing information for samples in the following format.
+Relative "cellranger" paths are resolved against the SAMPLEFILE's own directory.
 
 \b
 ```
 sample<TAB>cellranger[<TAB>nreaction]
+S1<TAB>/path/to/cellranger/S1/outs<TAB>1
 ```
 
 \b
 Example:
-  # 1. To generate an example config.yaml by -n|--dryrun
-  outdir=$(mktemp -d -u)
-  cellqc -d "$outdir" -t 8 -n -- samples.txt # save default parameters to outdir/config.yaml
-  ## copy from outdir/config.yaml and edit config.yaml
-  cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt
+  # 1. A single sample, no sample file needed (-D writes one for you)
+  cellqc -d out -t 8 -D sample:=:S1 -D cellranger:=:/path/to/cellranger/S1/outs
 
 \b
-  # 2. To overwrite samplefile by -D|--define
-  define=(
-  sample:=:BCM_22_0769_RNA_fovea
-  cellranger:=:/storage/chenlab/Users/jinli/wkfl/atlashumanprj/application/HCA/Retina/preproc/fixversion/v7.0.1/cellrangercount/BCM_22_0769_RNA_fovea/BCM_22_0769_RNA_fovea/outs
-  nreaction:=:1
-  )
-  cellqc -d "$outdir" -t 8 -c config.yaml $(basharr2cmdopts.sh -o -D -- "${define[@]}") 
+  # 2. A cohort, from a sample file
+  cellqc -d out -t 8 -- samples.txt                 # default parameters
+  cellqc -d out -t 8 -c config.yaml -- samples.txt  # customized parameters
+
+\b
+  # 3. Dry run first: prints the jobs and writes the fully resolved
+  #    configuration, defaults included, to outdir/config_<timestamp>.yaml.
+  #    Copy that file, edit it, and pass it back with -c.
+  cellqc -d out -t 8 -n -- samples.txt
+
+\b
+Output (per sample, under -d|--outdir):
+  result/{sample}.h5ad          the final QC'd matrix, ready for integration
+  result/{sample}_obs.txt.gz    .obs as a TSV, indexed by barcode
+  result/{sample}_var.txt.gz    .var as a TSV, indexed by gene
+  result/report.html            self-contained QC report
+  result/report_slides.pdf      presentation-ready slide deck
 
 \b
 Note:
   1. Please refer to the usage in the short tutorial available at https://github.com/lijinbio/cellqc.
-  2. The "-D|--define" option can be utilized to define an individual sample by overwriting the SAMPLEFILE.
+  2. "-D|--define" defines a single sample instead of a SAMPLEFILE. It writes
+     outdir/samples_<timestamp>.txt, so the "cellranger" path must be absolute
+     (a relative one would resolve against the outdir). Give it once per field:
+     -D sample:=:S1 -D cellranger:=:/abs/path/outs -D nreaction:=:1
+  3. Ambient RNA and doublet methods are chosen in the configuration file, not
+     on the command line; see the README.
 
 \b
-Date: 2025/04/05
+Date: 2026/08/05
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	nowtimestr=datetime.datetime.now().strftime('%y%m%d_%H%M%S')
