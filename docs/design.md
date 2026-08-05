@@ -1,7 +1,15 @@
-# cellqc v0.2.0 — implementation plan
+# cellqc — design notes
 
-Status legend: **TODO** / **IN PROGRESS** / **DONE** / **BLOCKED**
-Last updated: 2026-08-05
+The rationale behind the pipeline: why each step exists, what it deliberately does not do, and what was
+measured rather than assumed. Written for v0.2.0 and kept current where later releases superseded it —
+supersessions are marked inline rather than edited away, because the reasoning is the point.
+
+The task board and the installation section that used to live here are gone: the first was
+project management for a release that shipped, the second duplicates README.md, which is the
+source of truth for installation.
+
+`tests/validate_nuclear_fraction.py` and `cellqc/scripts/nuclear_fraction.py` cite section 2 of this file
+for the nuclear-fraction definition and its acceptance gate.
 
 ---
 
@@ -203,115 +211,9 @@ rule had to be threaded through `filterbycount`, `doubletfinder`, and `scpred` s
 from goal 1, and it is why adding DecontX and scDblFinder does not re-complicate the graph — both are
 selected *inside* a rule by config, not by adding conditionally-included rule files.
 
-### Files deleted
+## 2. Nuclear fraction in pysam
 
-`rules/dropkick.smk`, `rules/h5subset.smk`, `rules/scpred.smk`, `rules/h5seurat2h5ad.smk`,
-`scripts/dropkick.py`, `scripts/h5subset.R`, `scripts/scpred.R`, `scripts/h5seurat2h5ad.R`,
-`tests/skipdropkick/`, `tests/skipdoubletfinder/install.sh`.
-
----
-
-## 2. Task list
-
-### Phase A — environment and scaffolding
-
-- [x] **A1** Verify conda solvability of a single env — **DONE** (486 pkgs, py3.12/R4.5)
-- [x] **A2** Create `envs/cellqc.yaml` and build `cellqc_v0.2.0` — **DONE**
-      Installed: Python 3.12.13, scanpy 1.12.3, anndata 0.13.2, numpy 2.4.6, scipy 1.18.0, pysam 0.24.0,
-      matplotlib 3.11.1, snakemake 9.25.1, tectonic 0.17.0, R 4.5.3, Seurat 5.5.1, SeuratObject 5.4.0,
-      SoupX 1.6.2, DropletUtils 1.30.0, zellkonverter 1.20.1, scDblFinder 1.24.0, celda 1.26.0
-- [x] **A3** Install upstream DoubletFinder from GitHub — **DONE** (builds cleanly against Seurat 5.5.1;
-      Seurat-5 behavioral check on a real object still pending in A4)
-- [x] **A4** Smoke-test the whole R interop path — **DONE**. This was the highest-risk assumption; it holds.
-      Probe: 500 random cells × 25,143 genes from the real test sample, written by anndata 0.13.2 (CSR
-      float32, categorical `.obs`), seed 42.
-
-      | Step | Result |
-      |---|---|
-      | `readH5AD(reader='R')` → SCE | works, no Python involved; 25,143 × 500 |
-      | X round-trip | preserved as `dgCMatrix`, still integer-valued (max 991) — counts survive intact |
-      | `.obs` | all columns preserved including categoricals |
-      | `CreateSeuratObject` | gives a Seurat 5 `Assay5`; `LayerData(layer='counts')` works |
-      | **upstream DoubletFinder on Seurat 5** | **runs to completion**, emits `pANN_*` / `DF.classifications_*` — confirms the `lijinbio` fork is obsolete |
-      | scDblFinder | works **after renaming the assay** (below) |
-      | DecontX | works; mean contamination 0.077, `decontXcounts` assay returned |
-
-      **Gotcha to encode in the scripts:** zellkonverter names the main assay `X`, but scDblFinder and
-      DecontX both require one named `counts` (`.checkSCE` errors otherwise). Fix is one line —
-      `assayNames(sce)[assayNames(sce)=='X'] <- 'counts'` — but it must be in every R script that consumes
-      an `.h5ad`.
-
-      **Not a scientific result.** scDblFinder called 34/500 (6.8%) doublets at `dbr=0.02`. That number is
-      meaningless here: random subsampling to 500 cells destroys the neighbourhood and cluster structure
-      both callers depend on. This probe tested plumbing only. Real doublet rates come from F1.
-- [x] **A5** Update `setup.py` (drop `pygraphviz`, which the CLI never invokes), `MANIFEST.in` (graft `envs/`), `__init__.py` → 0.2.0 — **DONE**
-
-### Phase B — removals
-
-- [x] **B1** Delete dropkick/scpred/h5subset/h5seurat2h5ad rules + scripts — **DONE**
-- [x] **B2** Strip both from `Snakefile`, `rules/config.smk` defaults, `scripts/qcreport.py`, `template/index.html.jinja2` — **DONE**
-- [x] **B3** Emit a deprecation warning (not an error) when a config still carries `dropkick:`/`scpred:` — **DONE**
-- [x] **B4** Replace the permissive `schemas/config.schema.yaml` with real type/range validation for every parameter — **DONE**
-
-### Phase C — Python-side analysis (goal 5)
-
-- [x] **C1** `scripts/filterbycount.py` — scanpy replacement for `filterbycount.R` — **DONE**
-  - `sc.read_10x_h5` → `var_names_make_unique` → `calculate_qc_metrics(qc_vars={'mt'})`
-  - MT genes by `^MT-|^mt-` (unchanged from v0.1.0, so thresholds stay comparable)
-  - Violin plots before/after via `sc.pl.violin`
-  - **Report per-criterion exclusion counts, not just the total** — how many cells fail nCount, nFeature, and pct_mt individually and jointly. v0.1.0 reported only `ncell_bf`/`ncell_af`, which hides which threshold is doing the work.
-- [x] **C2** `scripts/filterdoublet.py` — merge every caller's metadata TSV into `.obs` under namespaced
-      columns, subset to singlets according to `doublet.decider` — **DONE**
-- [x] **C4** `scripts/scdblfinder.R` — read `.h5ad` via zellkonverter → SCE → `scDblFinder(sce, dbr=<same
-      expected rate as DoubletFinder>)` → `scdblfinder/{s}_metadata.txt.gz`. Same seed. Feed it the *same*
-      expected doublet rate so the two callers are compared under matched assumptions rather than each
-      using its own default — **DONE**
-- [x] **C5** Concordance: 2×2 table + Cohen's κ + score scatter (pANN vs scDblFinder score), into both
-      reports — **DONE**
-- [x] **C3** Update `scripts/postproc.py` for the new inputs (no behavioral change intended) — **DONE**
-
-### Phase D — nuclear fraction (goals 4, 5)
-
-- [x] **D1** `scripts/nuclear_fraction.py` — pysam reimplementation, see §4 — **DONE**
-- [x] **D2** **Validate against DropletQC** on the test sample, see §4.2 — **DONE** (gate: must pass before D1 is accepted)
-- [x] **D3** NF vs log10(UMI) scatter — **DONE**
-
-### Phase E — reports (goal 3)
-
-- [x] **E1** `scripts/barcoderank.py` — barcode rank (knee) plot from raw + filtered h5 — **DONE**
-- [x] **E2** Rework `qcreport.py` / `index.html.jinja2`: drop dropkick+scpred, add barcode rank and NF scatter — **DONE**
-- [x] **E3** `scripts/slidereport.py` + `scripts/template/slides.tex.jinja2` → tectonic → PDF, see §6 — **DONE**
-- [x] **E4** Figure policy: every plot emitted as vector PDF (editable text) + PNG for HTML, see §7 — **DONE**
-
-### Phase F — validation and docs
-
-- [x] **F1** Slurm script + end-to-end run on the GSE188280 test sample — **DONE**
-- [x] **F2** Compare v0.2.0 vs v0.1.0 outputs on that sample (§8) — **DONE**
-- [ ] **F3** Rewrite README install section; update CHANGELOG, CLAUDE.md — **DONE**
-- [ ] **F4** Update `tests/` scenarios; delete obsolete ones — **DONE**
-
----
-
-## 3. Installation (goal 2)
-
-Target — one env, one GitHub build:
-
-```bash
-mamba env create -n cellqc -f envs/cellqc.yaml
-conda activate cellqc
-Rscript -e "remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', upgrade=FALSE)"
-pip install cellqc
-```
-
-Removed relative to v0.1.0: `seurat-disk`, `harmony`, `scPred`, `DropletQC`, `lijinbio/DoubletFinder`, `dropkick`, the Seurat-v4 pin, the `r-matrix=1.6.1` pin, and the `pandas<2` pin. That is 5 of 6 GitHub builds and all 4 version pins.
-
-`DoubletFinder` remains a GitHub install because no conda package exists. This is stated plainly in the README rather than papered over.
-
----
-
-## 4. Nuclear fraction in pysam (goals 2, 4, 5)
-
-### 4.1 Definition (from DropletQC source, `R/nuclear_fraction_tags.R`)
+### 2.1 Definition (from DropletQC source, `R/nuclear_fraction_tags.R`)
 
 ```
 nuclear_fraction = n_intronic / (n_intronic + n_exonic)
@@ -321,7 +223,7 @@ per cell barcode, over reads carrying both `CB` and `RE` tags, restricted to the
 `filtered_feature_bc_matrix/barcodes.tsv.gz`. Intergenic reads (`RE:A:I`) are excluded from both
 numerator and denominator. Exon tag `E`, intron tag `N`.
 
-### 4.2 Implementation and known differences from DropletQC
+### 2.2 Implementation and known differences from DropletQC
 
 Single pass over the BAM with `pysam`, parallelized by contig (`multiprocessing`), counting `E` and `N`
 per barcode in the cell-barcode set. Deterministic — no seed needed.
@@ -347,7 +249,7 @@ Report the actual numbers and a Bland–Altman plot of the difference. **If the 
 DropletQC stays as a GitHub dependency** — matching the reference implementation matters more than removing
 one install. This is recorded as a real possibility, not a formality.
 
-### 4.3 Scatter plot (goal 4)
+### 2.3 Scatter plot
 
 x = log10(total UMI per called cell, from `filtered_feature_bc_matrix.h5` — i.e. pre-SoupX raw counts, so
 the axis means what it says), y = nuclear fraction, one point per called cell. Rasterized scatter at 500 dpi
@@ -362,11 +264,11 @@ plotted so a human can decide.
 
 ---
 
-## 5. Analysis-correctness items found while reading v0.1.0
+## 3. Analysis-correctness items found while reading v0.1.0
 
 These are pre-existing issues, not new work items invented for the sake of it. Each changes a number.
 
-### 5.1 No random seed anywhere — **fix** — WORSE THAN FIRST ASSESSED
+### 3.1 No random seed anywhere — **fix** — WORSE THAN FIRST ASSESSED
 
 Originally scoped as "the doublet calls are not reproducible". Validation showed the problem reaches the
 **count matrix itself**:
@@ -385,7 +287,7 @@ mito cutoff, so a ±1 count change is enough to move one across.
 Fix: a top-level `seed` key (default 42), set in every stochastic script, and re-seeded **before each
 ambient method** so a method's result does not depend on which other methods ran first.
 
-### 5.2 Hard-coded doublet-rate constant — **document, do not change**
+### 3.2 Hard-coded doublet-rate constant — **document, do not change**
 
 `doubletratio = ncol(x) * 0.1 / (nreaction * 13000)` encodes the 10x multiplet-rate rule of thumb
 (~0.8% per 1,000 cells recovered). It is reasonable for 3' v3 but is not a law, and it silently assumes a
@@ -393,7 +295,7 @@ ambient method** so a method's result does not depend on which other methods ran
 existing runs) but exposes the `0.1` and `13000` as named config parameters with the current values as
 defaults, and prints the assumed rate in the report so it is visible rather than buried in a script.
 
-### 5.3 Homotypic doublet proportion is never modelled
+### 3.3 Homotypic doublet proportion is never modelled
 
 DoubletFinder's `modelHomotypic()` adjusts `nExp` for doublets formed from same-type cells, which are
 undetectable. v0.1.0 uses the unadjusted Poisson `nExp`, which **over-removes** cells. Correcting this
@@ -403,7 +305,7 @@ clusters as the annotation for `modelHomotypic`, or (b) leave it unadjusted and 
 a clustering step purely to feed the correction adds a tuned parameter (resolution) to a QC pipeline.
 Flagged for the user's decision rather than changed unilaterally.
 
-### 5.4 SoupX contamination is estimated but its effect is never reported
+### 3.4 SoupX contamination is estimated but its effect is never reported
 
 `autoEstCont` estimates rho and `adjustCounts` applies it, but nothing quantifies the impact. Add to the
 report: rho per sample, and total counts removed as a fraction. Cheap, and it makes an invisible correction
@@ -411,7 +313,7 @@ auditable.
 
 ---
 
-## 6. PDF slide report (goal 3)
+## 4. PDF slide report
 
 `scripts/slidereport.py` renders `scripts/template/slides.tex.jinja2` and compiles with `tectonic`.
 
@@ -442,7 +344,7 @@ The metrics table has 20 columns and will not fit a 16:9 slide — it will be sp
 
 ---
 
-## 7. Figure policy (house style)
+## 5. Figure policy (house style)
 
 Every figure: `matplotlib` → PDF with text as font objects (`rcParams['pdf.fonttype']=42`), dense layers
 (scatter, hexbin) with `rasterized=True` at `dpi=600`; a PNG twin at 300 dpi for the HTML report only.
@@ -451,7 +353,7 @@ R figures (`ggplot2`) use `ggsave(device=cairo_pdf)` for the same reason. No `us
 
 ---
 
-## 8. Validation (Phase F)
+## 6. Validation
 
 Run on `tests/CellQC_mwe/cellqc_input/GSE188280_GSM5676874_0715_Macula_Retina` (CR 10.0.0, 13,559 cells).
 v0.1.0 outputs for this sample already exist in `cellqc_outdir/`, so every stage is comparable.
@@ -473,7 +375,7 @@ The submission script is kept in `tests/CellQC_mwe/` for the record.
 
 ---
 
-### 8.1 Deferred: DoubletFinder vs scDblFinder evaluation — **DEFERRED**
+### 6.1 Deferred: DoubletFinder vs scDblFinder evaluation — **DEFERRED**
 
 Blocked on ground-truth data. Requires a genetically multiplexed or cell-hashed library; see the discussion
 above. v0.2.0's job is only to record both callers' per-cell scores so this evaluation becomes possible.
@@ -481,7 +383,7 @@ Until it is run, "scDblFinder is better" and "DoubletFinder is better" are both 
 
 ---
 
-## 9. Decisions taken (were open questions)
+## 7. Decisions taken (were open questions)
 
 - **§5.3 homotypic doublets — RESOLVED: leave `nExp` unadjusted.** `modelHomotypic()` is not called. The
   consequence must be stated in every report: because same-type doublets are undetectable and no
@@ -495,10 +397,14 @@ Until it is run, "scDblFinder is better" and "DoubletFinder is better" are both 
   No `skip:` key. Mixed cohorts (some samples with BAM, some without) work, and which samples got NF is
   recorded in both reports so a missing NF column is never silently mistaken for a computed one.
 
-## 9b. Remaining open questions — leave `nExp` unadjusted (recommended) or add a clustering step to feed
-   `modelHomotypic()`?
-2. **Nuclear fraction with no BAM.** v0.1.0 makes it mandatory. v0.2.0 adds `nuclear_fraction.skip` so
-   samples without a BAM can run. Confirm that is wanted.
+## 8. Remaining open questions
+
+1. **Homotypic doublets.** Leave `nExp` unadjusted (recommended) or add a clustering step to feed
+   `modelHomotypic()`? Unadjusted over-estimates the *detectable* doublet count, a bias whose direction is
+   known and stated in every report.
+2. ~~**Nuclear fraction with no BAM.** v0.1.0 makes it mandatory. v0.2.0 adds `nuclear_fraction.skip` so
+   samples without a BAM can run. Confirm that is wanted.~~ **Resolved in v0.2.0:** no skip key at all —
+   the step is enabled per sample by the presence of an indexed BAM, detected at DAG-construction time.
 3. **`postproc/` vs `result/`** — ~~both are kept as-is. Confirm the split is still useful now that the
    pipeline is shorter.~~ **Resolved after v0.2.0:** the split was not useful. The final matrix is what a
    user wants and it now *is* `result/{s}.h5ad` (postproc's output); the pre-integration matrix moved to

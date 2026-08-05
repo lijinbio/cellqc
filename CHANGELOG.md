@@ -7,7 +7,7 @@
   every other stage's output already lives. The `postproc/` directory is gone. Downstream code that read
   `postproc/{sample}.h5ad` should read `result/{sample}.h5ad`; code that read the old `result/{sample}.h5ad`
   wants `filterdoublet/{sample}.h5ad`, which is now `temp()` — see below. This resolves the open question
-  in `docs/v0.2.0_plan.md` §9b.3.
+  in `docs/design.md` §8.3.
 - Removed `doublet.skip`. Doublet detection always runs; the callers are `doublet.run` and a caller you do
   not want is left out of it, which is the same convention `nuclear_fraction` already used (no skip flag).
   `doublet.skip: false` warns and is dropped. `doublet.skip: true` is an **error**, not a warning: there is

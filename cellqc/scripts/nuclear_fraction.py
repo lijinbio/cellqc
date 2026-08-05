@@ -5,7 +5,7 @@
 
 This reimplements DropletQC::nuclear_fraction_tags(), whose only dependency was
 a GitHub-only R package. Two deliberate differences from that reference, both
-measured rather than assumed (see docs/v0.2.0_plan.md 4.2):
+measured rather than assumed (see docs/design.md 2.2):
 
   1. DropletQC splits the genome into 100 tiles and queries each with
      scanBam(which=), so a read spanning a tile boundary is counted twice. This

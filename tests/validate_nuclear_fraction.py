@@ -6,7 +6,7 @@ v0.2.0 replaces DropletQC::nuclear_fraction_tags() with a pysam single pass, to
 remove a GitHub-only R dependency. That is only acceptable if it reproduces the
 reference. This compares the two on the same sample and FAILS if it does not.
 
-Gate (docs/v0.2.0_plan.md 4.2):
+Gate (docs/design.md 2.2):
 	identical barcode set
 	Pearson r and Spearman rho > 0.999
 	median |delta| < 0.001 and max |delta| < 0.01
