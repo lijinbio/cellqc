@@ -42,6 +42,11 @@
 
 \title{((( title )))}
 \subtitle{Single-cell RNA-seq quality control}
+((# Deliberately not \today: result/report_slides.tex is kept next to the PDF,
+   and \today would make a later recompile of that same .tex produce a deck with
+   a different date -- the archived source would stop reproducing the archived
+   output. The date is fixed in Python at render time, in ISO 8601 so it reads
+   the same everywhere. #))
 \date{((( date )))}
 
 \begin{document}
