@@ -25,8 +25,6 @@ from cellqc import qcutil
 in_h5ad = snakemake.input['h5ad']
 in_meta = list(snakemake.input['metadata'])
 out_h5ad = snakemake.output['h5ad']
-out_obs = snakemake.output['obs']
-out_var = snakemake.output['var']
 out_summary = snakemake.output['summary']
 out_concordance = snakemake.output['concordance']
 
@@ -131,7 +129,6 @@ def main():
 
 	filtered = adata[keep].copy()
 	filtered.write_h5ad(out_h5ad, compression='gzip')
-	qcutil.write_obs_var(filtered, out_obs, out_var)
 
 	summary['ncell_before'] = n_before
 	summary['ncell_after'] = int(keep.sum())

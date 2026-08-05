@@ -209,14 +209,19 @@ the true heterotypic count. The bias direction is known, constant, and stated in
 |---|---|
 | `result/{sample}.h5ad` | **The final matrix.** QC'd counts prepared for integration: sample-prefixed barcodes, unique var names, no `raw` layer, nuclear fraction attached when available. `.obs` carries the QC metrics and every doublet caller's score/class; `.uns` records which caller decided removal. |
 | `result/{sample}_obs.txt.gz`, `result/{sample}_var.txt.gz` | `.obs` and `.var` as gzipped TSVs, indexed by `barcode` and `gene`. Everything the matrix knows about each cell and each feature, readable without anndata. |
-| `filterdoublet/{sample}.h5ad` | The same cells before the integration prep — original barcodes, no sample prefix, no nuclear fraction. With its own `_obs`/`_var` dumps. |
 | `result/metrics.csv` | Every scalar the run produced, one row per sample: Cell Ranger metrics, knee/inflection, ambient contamination per method, per-criterion filter counts, each doublet caller's count and their concordance, nuclear-fraction quartiles, and the retained fraction. Assembled from the same collected data as the reports, so it cannot disagree with them — join on `sampleid` instead of scraping a number out of the HTML. |
 | `result/report.html` | Self-contained HTML QC report; all figures inlined. |
 | `result/report_slides.pdf` | Presentation-ready beamer deck: Cell Ranger metrics, barcode rank, ambient RNA, QC violins, nuclear fraction, doublet calls, and a limitations slide. |
 
 Per-stage outputs (`ambient/`, `barcoderank/`, `nuclear_fraction/`, `filterbycount/`, `doubletfinder/`,
-`scdblfinder/`, `filterdoublet/`) keep the statistics tables and figures. Every figure is written as a
-vector PDF with editable text alongside a 300 dpi PNG for the HTML report.
+`scdblfinder/`) keep the statistics tables and figures. Every figure is written as a vector PDF with
+editable text alongside a 300 dpi PNG for the HTML report.
+
+The intermediate matrices (`filterbycount/{sample}.h5ad`, `filterdoublet/{sample}.h5ad`) are working files.
+`filterdoublet/`'s is marked `temp` and deleted once `result/{sample}.h5ad` is written: it held the same
+cells and the same counts, differing only in the barcode prefix and the nuclear-fraction columns, so
+keeping it wrote every count matrix to disk twice. To keep it, run the workflow through Snakemake directly
+with `--notemp` — the `cellqc` CLI does not pass Snakemake flags through.
 
 ### An example
 

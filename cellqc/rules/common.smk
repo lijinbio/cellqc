@@ -70,14 +70,11 @@ def report_inputs():
 def final_targets():
   """Everything `rule all` should ask for, given which steps apply."""
   ids = samples['sample'].tolist()
-  # result/{s}.h5ad is postproc's output, the final matrix; filterdoublet/{s}.h5ad
-  # is the same cells before the integration prep. Both carry an _obs/_var dump.
+  # result/{s}.h5ad is postproc's output: the final matrix, with its .obs and
+  # .var alongside. filterdoublet's matrix is temp() and deliberately not asked
+  # for -- requesting it here would keep Snakemake from ever deleting it.
   targets = expand(
-    [
-      "result/{sample}.h5ad", "result/{sample}_obs.txt.gz", "result/{sample}_var.txt.gz",
-      "filterdoublet/{sample}.h5ad",
-      "filterdoublet/{sample}_obs.txt.gz", "filterdoublet/{sample}_var.txt.gz",
-      ],
+    ["result/{sample}.h5ad", "result/{sample}_obs.txt.gz", "result/{sample}_var.txt.gz"],
     sample=ids)
   targets += expand(["barcoderank/{sample}_barcoderank.pdf"], sample=ids)
   targets += expand(["nuclear_fraction/{sample}.txt.gz"], sample=nf_samples)

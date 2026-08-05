@@ -11,9 +11,13 @@ rule filterdoublet:
     h5ad="filterbycount/{sample}.h5ad",
     metadata=doublet_metadata,
   output:
-    h5ad="filterdoublet/{sample}.h5ad",
-    obs="filterdoublet/{sample}_obs.txt.gz",
-    var="filterdoublet/{sample}_var.txt.gz",
+    # temp(): postproc is the only consumer, and its output is this matrix plus
+    # the sample-prefixed barcodes, unique var names and nuclear fraction. Keeping
+    # both meant every run wrote the count matrix to disk twice (72 MB per sample
+    # on the reference cohort) for a file whose only unique content was the
+    # unprefixed barcode. `snakemake --notemp` keeps it; the cellqc CLI does not
+    # pass that through.
+    h5ad=temp("filterdoublet/{sample}.h5ad"),
     summary="result/{sample}_doublet_summary.txt",
     concordance="result/{sample}_doublet_concordance.txt",
   params:

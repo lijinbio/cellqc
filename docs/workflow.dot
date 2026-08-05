@@ -21,9 +21,7 @@ digraph cellqc {
 	filter  [label="Filter on counts (scanpy)\nUMI, genes, % mitochondrial", color="#106e78", penwidth=1.8];
 	doublet [label="Doublets\nDoubletFinder + scDblFinder\none configured caller removes cells",
 		color="#106e78", penwidth=1.8];
-	result  [label="filterdoublet/{sample}.h5ad\nQC'd counts + per-cell QC metrics",
-		fillcolor="#e6f0f1", color="#106e78", penwidth=1.8];
-	post    [label="result/{sample}.h5ad\nfinal: ready for integration\n+ {sample}_obs.txt.gz / _var.txt.gz",
+	post    [label="result/{sample}.h5ad\nfinal: QC'd counts, ready for integration\n+ {sample}_obs.txt.gz / _var.txt.gz",
 		fillcolor="#e6f0f1", color="#106e78", penwidth=1.8];
 
 	/* Diagnostics: reported, never applied. */
@@ -39,8 +37,7 @@ digraph cellqc {
 	cr -> ambient [weight=10];
 	ambient -> filter [weight=10];
 	filter -> doublet [weight=10];
-	doublet -> result [weight=10];
-	result -> post [weight=10];
+	doublet -> post [weight=10];
 
 	cr -> knee [style=dashed, color="#7a7a7a"];
 	cr -> nf   [style=dashed, color="#7a7a7a"];
@@ -49,8 +46,8 @@ digraph cellqc {
 
 	/* Both reports are built from one collected set of stats, so the HTML and
 	 * the slides cannot describe different runs. */
-	result -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
-	knee   -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
+	post -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
+	knee -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
 
 	note [shape=plaintext, style="", fontsize=9, fontcolor="#5a5a5a",
 		label="dotted: every stage also contributes its stats table and figures\lto both reports (cellqc/reportdata.py)\l"];

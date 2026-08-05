@@ -109,12 +109,16 @@ The R doublet steps write only a per-barcode metadata TSV; Python applies it. R 
 which keeps a second serializer out of the count path.
 
 **`result/` is what a user takes away**, and the final matrix is `postproc`'s output — not an intermediate
-in a `postproc/` directory that readers mistook for a leftover. Every stage writes to `<rulename>/`,
-including `filterdoublet/`; only the final matrix, the doublet statistics and the two reports live in
-`result/`. Both kept matrices carry `_obs.txt.gz`/`_var.txt.gz` dumps written by `qcutil.write_obs_var`,
-indexed by `barcode`/`gene`, so `.obs` and `.var` are readable without anndata. Rules use **named**
-outputs (`h5ad=`, `obs=`, `var=`) — with five outputs on `filterdoublet`, positional indices were a bug
-waiting to happen.
+in a `postproc/` directory that readers mistook for a leftover. Every stage writes to `<rulename>/`; only
+the final matrix, the doublet statistics and the two reports live in `result/`. `result/{s}.h5ad` carries
+`_obs.txt.gz`/`_var.txt.gz` dumps written by `qcutil.write_obs_var`, indexed by `barcode`/`gene`, so `.obs`
+and `.var` are readable without anndata. Rules use **named** outputs (`h5ad=`, `summary=`, …) rather than
+positional indices.
+
+`filterdoublet/{s}.h5ad` is `temp()`. It is the same cells and counts as `result/{s}.h5ad`, differing only
+in the barcode prefix, unique var names and the nuclear-fraction columns, so keeping it wrote every count
+matrix to disk twice (72 MB per sample on the reference cohort). **Do not add it to `final_targets()`** —
+requesting it would stop Snakemake ever deleting it.
 
 **No step has a skip flag.** Doublet detection is selected by `doublet.run` (schema: at least one
 caller), so `doublet.skip` is gone — `config.smk` errors on `skip: true` rather than quietly writing a

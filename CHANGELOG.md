@@ -6,7 +6,8 @@
   takes away — and the pre-integration matrix moved from `result/` to `filterdoublet/{sample}.h5ad`, where
   every other stage's output already lives. The `postproc/` directory is gone. Downstream code that read
   `postproc/{sample}.h5ad` should read `result/{sample}.h5ad`; code that read the old `result/{sample}.h5ad`
-  wants `filterdoublet/{sample}.h5ad`. This resolves the open question in `docs/v0.2.0_plan.md` §9b.3.
+  wants `filterdoublet/{sample}.h5ad`, which is now `temp()` — see below. This resolves the open question
+  in `docs/v0.2.0_plan.md` §9b.3.
 - Removed `doublet.skip`. Doublet detection always runs; the callers are `doublet.run` and a caller you do
   not want is left out of it, which is the same convention `nuclear_fraction` already used (no skip flag).
   `doublet.skip: false` warns and is dropped. `doublet.skip: true` is an **error**, not a warning: there is
@@ -43,9 +44,14 @@
   and their concordance, nuclear-fraction quartiles, retained fraction. Assembled from the same
   `reportdata.collect()` the reports use, so it cannot disagree with them, and it means nothing downstream
   has to scrape a number out of the HTML. 76 columns on the reference sample.
-- `.obs` and `.var` are written beside every kept matrix as gzipped TSVs (`{sample}_obs.txt.gz`,
+- `.obs` and `.var` are written beside `result/{sample}.h5ad` as gzipped TSVs (`{sample}_obs.txt.gz`,
   `{sample}_var.txt.gz`), indexed by `barcode` and `gene`, so the per-cell QC metrics and the feature table
   can be read and joined without anndata.
+- `filterdoublet/{sample}.h5ad` is `temp()`: Snakemake deletes it once `result/{sample}.h5ad` is written.
+  It held the same cells and the same counts as the final matrix, differing only in the barcode prefix,
+  the uniquified var names and the nuclear-fraction columns, so keeping it wrote every count matrix to
+  disk twice — 72 MB per sample as written on the reference cohort (~35 MB of actual disk there, since
+  that filesystem compresses), against ~207 MB for the whole run. `snakemake --notemp` keeps it.
 - README documents *why* the expected doublet rate is linear in cell yield — droplet occupancy is Poisson,
   so the multiplet fraction among occupied droplets is `1 - λ/(e^λ - 1) ≈ λ/2` — with the references
   behind the rule of thumb (Bloom 2018 PeerJ 6:e5578; 10x Chromium user guides, ≈0.8% per 1,000 cells
