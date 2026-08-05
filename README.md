@@ -19,7 +19,7 @@ Output is `.h5ad` matrices, a self-contained HTML report, and a presentation-rea
 Cell calling is Cell Ranger EmptyDrops; cellqc does not re-call cells. Cell-type annotation is out of
 scope as of v0.2.0 — annotate downstream.
 
-![workflow](docs/workflow.png)
+![workflow](https://raw.githubusercontent.com/lijinbio/cellqc/master/docs/workflow.png)
 
 Both figures in `docs/` are generated from source by `bash docs/make_figures.sh` — `workflow.png` from
 `docs/workflow.dot`, and the job DAG below straight from the workflow itself.
@@ -281,7 +281,7 @@ Snakemake builds this job DAG — one sample with a BAM, both doublet callers en
 `qcreport`/`slidereport` repeats per sample; the two report rules take all samples at once, which is the
 only place the graph widens:
 
-![DAG](docs/tests/dag.png)
+![DAG](https://raw.githubusercontent.com/lijinbio/cellqc/master/docs/tests/dag.png)
 
 Example outputs from the reference run (GSE188280, 13,559 cells) are in `docs/tests/`:
 [report.html](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report.html) and
