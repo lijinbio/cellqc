@@ -29,8 +29,10 @@ setup(
     name="cellqc",
     author="Jin Li",
     author_email="lijin.abc@gmail.com",
-    python_requires=">=3.6",
-    description="Cellqc standardizes the qualiy control of single-cell RNA-Seq (scRNA) data to render clean feature count matrices.",
+    # The runtime environment is Python 3.12 (envs/cellqc.yaml); 3.9 is the
+    # oldest the CLI and the workflow scripts are known to import on.
+    python_requires=">=3.9",
+    description="Cellqc standardizes the quality control of single-cell RNA-Seq (scRNA) data to render clean feature count matrices.",
     install_requires=DEPENDENCIES,
     packages=find_packages(exclude=EXCLUDE_FROM_PACKAGES),
     long_description=readme,
