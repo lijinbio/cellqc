@@ -1,3 +1,17 @@
+# v0.3.1 - Aug 5, 2026
+
+Packaging release. No behaviour change: the workflow, its outputs and its numbers are identical to v0.3.0.
+
+- The v0.3.0 sdist on PyPI was built one commit before the `v0.3.0` tag, so the published copy of
+  `scripts/nuclear_fraction.py` still pointed at `docs/v0.2.0_plan.md 4.2` — a file renamed to
+  `docs/design.md` in the tagged tree. PyPI does not allow replacing a released file, so this release
+  exists to make the published artifact and the tag agree.
+- `envs/cellqc.yaml` floors `r-soupx>=1.6.2`, matching the bioconda recipe, which had carried the pin
+  alone. SoupX upstream has been dormant since 1.6.2 (2022-11-01) while conda-forge still carries builds
+  back to 1.4.5, so the floor asks for the final release rather than letting a constrained solve pick an
+  old one. Verified: the constraint installs 1.6.2 and every SoupX call `ambient.R` makes
+  (`autoEstCont(forceAccept=)`, `adjustCounts(roundToInt=)`, `SoupChannel`, `setClusters`) is present.
+
 # v0.3.0 - Aug 5, 2026
 
 ## Breaking changes
