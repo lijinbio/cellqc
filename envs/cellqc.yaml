@@ -1,6 +1,11 @@
-# cellqc v0.2.0 runtime environment.
+# cellqc v0.3.0 runtime environment.
 # Everything here comes from conda-forge/bioconda. The ONLY component that is
 # not conda-installable is DoubletFinder (GitHub-only); see README.md.
+#
+# The rule is "declare what the code imports": every package below is named by
+# an import in cellqc/ or by a library()/:: call in a workflow script, apart
+# from the four marked as indirect. Transitive dependencies are left to the
+# solver.
 name: cellqc
 channels:
   - conda-forge
@@ -16,11 +21,10 @@ dependencies:
   # --- python analysis stack ---
   - numpy
   - scipy
-  - h5py
+  - h5py                 # indirect: scanpy's read_10x_h5
   - matplotlib-base
   - scanpy
   - anndata
-  - leidenalg
   - pysam
   # --- PDF slide report ---
   - tectonic
@@ -28,14 +32,20 @@ dependencies:
   - r-base>=4.4
   - r-seurat>=5
   - r-seuratobject>=5
+  - r-matrix
   - r-soupx
   - r-ggplot2
-  - r-dplyr
+  - bioconductor-dropletutils
+  - bioconductor-singlecellexperiment
+  - bioconductor-summarizedexperiment
+  - bioconductor-zellkonverter
+  - bioconductor-scdblfinder
+  - bioconductor-celda   # DecontX
+  # --- for the DoubletFinder install step, and its dependencies ---
+  # remotes runs the one GitHub build the README documents; the other three are
+  # DoubletFinder's own imports, kept here so that build does not have to reach
+  # CRAN for them.
   - r-remotes
   - r-rocr
   - r-fields
   - r-kernsmooth
-  - bioconductor-dropletutils
-  - bioconductor-zellkonverter
-  - bioconductor-scdblfinder
-  - bioconductor-celda   # DecontX

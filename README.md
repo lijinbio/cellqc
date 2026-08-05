@@ -26,18 +26,28 @@ Both figures in `docs/` are generated from source by `bash docs/make_figures.sh`
 
 ## Installation
 
-Everything comes from one conda environment. The only component that is not conda-installable is
-DoubletFinder, which is GitHub-only.
+From conda (recommended — this pulls the whole analysis stack):
+
+```
+mamba create -n cellqc -c conda-forge -c bioconda cellqc
+conda activate cellqc
+
+# DoubletFinder is not packaged for conda; see below
+Rscript -e "remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', upgrade=FALSE)"
+```
+
+From the environment file, if you want the exact development environment or are working from a clone:
 
 ```
 mamba env create -n cellqc -f envs/cellqc.yaml
 conda activate cellqc
-
-# DoubletFinder is not packaged for conda
 Rscript -e "remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', upgrade=FALSE)"
-
-pip install -U cellqc
+pip install -U cellqc          # or `pip install -e .` from a clone
 ```
+
+`pip install cellqc` on its own installs the CLI and the workflow, but **not** the analysis stack: scanpy,
+pysam and the entire R side come from conda, because pip cannot install R packages. Use one of the two
+routes above.
 
 If you would rather avoid the GitHub build entirely, set `doublet.run: [scdblfinder]` and
 `doublet.decider: scdblfinder` in the config; scDblFinder comes from bioconda.

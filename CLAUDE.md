@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version
 
-The tree is **v0.2.0**. `docs/v0.2.0_plan.md` carries the design rationale, the task board, and the
+The tree is **v0.3.0**. `docs/v0.2.0_plan.md` carries the design rationale, the task board, and the
 validation results — read it before changing the workflow.
 
 Environment: `envs/cellqc.yaml` plus one GitHub build (DoubletFinder is not on conda).

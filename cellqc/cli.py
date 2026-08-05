@@ -11,6 +11,8 @@ import re
 import pandas as pd
 from pathlib import Path
 
+from cellqc import __version__
+
 def runcmd(cmdstr):
 	try:
 		cmdstr=' '.join(cmdstr)
@@ -37,7 +39,10 @@ CONTEXT_SETTINGS=dict(help_option_names=['-h', '--help'])
 @click.option('-n', '--dryrun', is_flag=True, help='Dry-run.')
 @click.option('-D', '--define', type=click.STRING, multiple=True, help='Define KEY=VALUE pairs.')
 @click.argument('samplefile', type=click.Path(exists=False, resolve_path=True), required=False)
-@click.version_option()
+# Read the version from the package, not from installed metadata: in an
+# editable install the metadata is whatever it was at `pip install -e .` time,
+# so `cellqc --version` would keep reporting the version the tree had then.
+@click.version_option(version=__version__)
 def main(configfile, outdir, numthreads, dryrun, define, samplefile):
 	"""
 cellqc: a quality control pipeline of single-cell RNA-Seq data.
@@ -72,6 +77,7 @@ Output (per sample, under -d|--outdir):
   result/{sample}.h5ad          the final QC'd matrix, ready for integration
   result/{sample}_obs.txt.gz    .obs as a TSV, indexed by barcode
   result/{sample}_var.txt.gz    .var as a TSV, indexed by gene
+  result/metrics.csv            every number the run produced, one row per sample
   result/report.html            self-contained QC report
   result/report_slides.pdf      presentation-ready slide deck
 
