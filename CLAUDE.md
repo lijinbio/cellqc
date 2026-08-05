@@ -72,9 +72,8 @@ submission that produced it is not in the repo. Its outputs live in
 `/dfs3b/ruic20_lab/jinl14/mrrdir/.local/github/cellqc_v020_final/out`, and the v0.1.0 comparison run in
 `.../cellqc/tests/CellQC_mwe/cellqc_outdir/`.
 
-Figures in `docs/` are generated: `bash docs/make_figures.sh` renders `docs/workflow.png` from
-`docs/workflow.dot` and `docs/tests/dag.png` from the workflow itself. Do not hand-edit the PNGs — the
-v0.1.0 diagram went stale for a whole release because it existed only as a PNG.
+`docs/workflow.png` is generated: `bash docs/make_figures.sh` renders it from `docs/workflow.dot`. Do not
+hand-edit the PNG — the v0.1.0 diagram went stale for a whole release because it existed only as a PNG.
 
 The analysis stack lives in `envs/cellqc.yaml`, not `pyproject.toml` (pip cannot install R packages).
 `pyproject.toml` declares only what the CLI itself imports. The bioconda recipe is maintained separately at

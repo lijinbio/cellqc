@@ -31,9 +31,10 @@
   Cell Ranger metrics were set in 5pt type in the middle of an empty frame. Tables now get real column
   names, are folded two-up where they are long, and are wrapped in a fit-to-width box that shrinks a table
   only when it would overflow, so no data-dependent table can silently run off a slide again.
-- `docs/workflow.png` redrawn for v0.2.0 (it still showed dropkick and scPred) and now generated from
-  `docs/workflow.dot`; `docs/tests/dag.png` regenerated from the workflow itself. Both come from
-  `bash docs/make_figures.sh`. `docs/tests/` also carries the current example report and slide deck.
+- `docs/workflow.png` redrawn (it still showed dropkick and scPred) and now generated from
+  `docs/workflow.dot` by `bash docs/make_figures.sh`. The Snakemake job-DAG image is gone: it duplicated
+  what the workflow diagram already shows, at rule-name granularity nobody reads, and went stale on every
+  rule rename. `docs/tests/` carries the current example report, slide deck and metrics.csv.
 
 ## Added
 

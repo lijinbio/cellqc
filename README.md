@@ -21,8 +21,7 @@ scope as of v0.2.0 — annotate downstream.
 
 ![workflow](https://raw.githubusercontent.com/lijinbio/cellqc/master/docs/workflow.png)
 
-Both figures in `docs/` are generated from source by `bash docs/make_figures.sh` — `workflow.png` from
-`docs/workflow.dot`, and the job DAG below straight from the workflow itself.
+The diagram is generated from source: `bash docs/make_figures.sh` renders it from `docs/workflow.dot`.
 
 ## Installation
 
@@ -277,13 +276,11 @@ cellqc -d out -t 8 -n -- samples.txt              # dry run; writes out/config_<
 The dry run writes the fully resolved configuration, defaults included, to `outdir/config_<timestamp>.yaml`
 — copy that file, edit it, and pass it back with `-c`.
 
-Snakemake builds this job DAG — one sample with a BAM, both doublet callers enabled. Every rule above
-`qcreport`/`slidereport` repeats per sample; the two report rules take all samples at once, which is the
-only place the graph widens:
-
-![DAG](https://raw.githubusercontent.com/lijinbio/cellqc/master/docs/tests/dag.png)
+To see the jobs Snakemake will run before running them, use the dry run above; `snakemake --dag` renders
+the graph itself if you want a picture of a particular cohort.
 
 Example outputs from the reference run (GSE188280, 13,559 cells) are in `docs/tests/`:
-[report.html](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report.html) and
-[report_slides.pdf](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report_slides.pdf).
+[report.html](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report.html),
+[report_slides.pdf](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report_slides.pdf) and
+[metrics.csv](https://github.com/lijinbio/cellqc/blob/master/docs/tests/metrics.csv).
 
