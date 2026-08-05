@@ -2,6 +2,11 @@
 
 ## Breaking changes
 
+- Output layout. The final matrix is now `result/{sample}.h5ad` — postproc's output, what a user actually
+  takes away — and the pre-integration matrix moved from `result/` to `filterdoublet/{sample}.h5ad`, where
+  every other stage's output already lives. The `postproc/` directory is gone. Downstream code that read
+  `postproc/{sample}.h5ad` should read `result/{sample}.h5ad`; code that read the old `result/{sample}.h5ad`
+  wants `filterdoublet/{sample}.h5ad`. This resolves the open question in `docs/v0.2.0_plan.md` §9b.3.
 - Removed `doublet.skip`. Doublet detection always runs; the callers are `doublet.run` and a caller you do
   not want is left out of it, which is the same convention `nuclear_fraction` already used (no skip flag).
   `doublet.skip: false` warns and is dropped. `doublet.skip: true` is an **error**, not a warning: there is
@@ -23,15 +28,25 @@
 
 ## Added
 
-- `tests/dryrun.sh`: a data-free check of the config layer and DAG shape (stage selection, per-sample BAM
-  detection, every config migration and rejection path). Runs in seconds; no HPC, no test data.
-- `tests/nreaction/main.sh` is self-contained: it checks the `rate * ncell / (nreaction * capacity)`
-  arithmetic with no data and runs the pipeline only when given `CELLRANGER=`.
+- `.obs` and `.var` are written beside every kept matrix as gzipped TSVs (`{sample}_obs.txt.gz`,
+  `{sample}_var.txt.gz`), indexed by `barcode` and `gene`, so the per-cell QC metrics and the feature table
+  can be read and joined without anndata.
+- README documents *why* the expected doublet rate is linear in cell yield — droplet occupancy is Poisson,
+  so the multiplet fraction among occupied droplets is `1 - λ/(e^λ - 1) ≈ λ/2` — with the references
+  behind the rule of thumb (Bloom 2018 PeerJ 6:e5578; 10x Chromium user guides, ≈0.8% per 1,000 cells
+  recovered; scDblFinder's ≈1% per 1,000) and the two known upward biases.
+- `tests/dryrun.sh`: a data-free smoke test — the DAG builds, the promised outputs are produced, the
+  nuclear fraction runs only where there is a BAM, an obsolete config key is rejected, and `nreaction`
+  scales the expected doublet rate. Seconds, no HPC, no test data.
 
 ## Removed
 
-- `tests/main.sh`, which depended on lab-only helpers (`trapdebug`, `mrrdir.sh`, `slurmtaco.sh`) and
-  called `cellqc` without a sample file.
+- `tests/` is now two scripts and a README, with no lab-specific paths, accounts or helpers, so it can ship
+  publicly and is purely about testing the package. Gone: `tests/main.sh` (depended on `trapdebug`,
+  `mrrdir.sh`, `slurmtaco.sh` and called `cellqc` without a sample file), `tests/mwe/slurm_cellqc.sh` (a
+  site-specific sbatch submission; the reference run is documented in `tests/README.md` instead) and
+  `tests/nreaction/` (its one assertion moved into `dryrun.sh`).
+  `tests/mwe/validate_nuclear_fraction.py` moved to `tests/validate_nuclear_fraction.py`.
 
 # v0.2.0 - Aug 5, 2026
 

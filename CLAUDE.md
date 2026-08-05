@@ -52,21 +52,25 @@ cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt
 cellqc -d "$outdir" -c config.yaml $(basharr2cmdopts.sh -o -D -- "${define[@]}")  # -D sample:=:X cellranger:=:/path
 ```
 
-There is no unit-test framework or CI. Testing is three things (see `tests/README.md`):
+There is no unit-test framework or CI. `tests/` is two scripts, kept minimal and free of lab-specific
+paths because it ships publicly (see `tests/README.md`):
 
 ```bash
-bash tests/dryrun.sh                                          # seconds, no data: config layer + DAG shape
-sbatch --chdir=<shared-dir> tests/mwe/slurm_cellqc.sh         # free partition, ruic20_lab, --requeue
-python tests/mwe/validate_nuclear_fraction.py <new.txt.gz> <dropletqc_ref.txt.gz> [outdir]
+bash tests/dryrun.sh                                     # seconds, no data: DAG builds, outputs as promised
+python tests/validate_nuclear_fraction.py <new.txt.gz> <dropletqc_ref.txt.gz> [outdir]
 ```
 
-`tests/dryrun.sh` builds stub Cell Ranger directories (`--dry-run` only needs the paths to exist) and
-asserts which rules the DAG contains for a given config, plus every config-migration and rejection path.
-Run it after touching `config.smk`, the schema, or `Snakefile`.
+`tests/dryrun.sh` builds stub Cell Ranger directories (`--dry-run` only needs the paths to exist). Run it
+after touching `config.smk`, the schema, `Snakefile`, or any rule's outputs — and extend it when a rule's
+outputs change, since that is what it asserts.
 
-`tests/mwe/validate_nuclear_fraction.py` is a hard gate on the pysam nuclear-fraction reimplementation
-against DropletQC; if it fails, the correct response is to revert to DropletQC, not to loosen the
-thresholds.
+`tests/validate_nuclear_fraction.py` is a hard gate on the pysam nuclear-fraction reimplementation against
+DropletQC; if it fails, the correct response is to revert to DropletQC, not to loosen the thresholds.
+
+The reference run (GSE188280 GSM5676874, 13,559 cells) is documented in `tests/README.md`; the lab Slurm
+submission that produced it is not in the repo. Its outputs live in
+`/dfs3b/ruic20_lab/jinl14/mrrdir/.local/github/cellqc_v020_final/out`, and the v0.1.0 comparison run in
+`.../cellqc/tests/CellQC_mwe/cellqc_outdir/`.
 
 Figures in `docs/` are generated: `bash docs/make_figures.sh` renders `docs/workflow.png` from
 `docs/workflow.dot` and `docs/tests/dag.png` from the workflow itself. Do not hand-edit the PNGs — the
@@ -84,21 +88,30 @@ The analysis stack lives in `envs/cellqc.yaml`, not `setup.py` (pip cannot insta
 
 **Stage selection is by config, not by conditional rule inclusion.** v0.1.0 threaded a
 "whichever stage is last must emit `result/{sample}.h5seurat`" invariant through three rule files with
-inline conditionals. v0.2.0 has a single terminus: `filterdoublet.py` always writes `result/{sample}.h5ad`.
-Alternative methods (SoupX vs DecontX, DoubletFinder vs scDblFinder) are chosen *inside* a rule from
-config, so adding a method does not change the DAG shape. The pipeline is:
+inline conditionals. v0.2.0 has a single terminus: `filterdoublet.py` always writes the QC'd matrix and
+`postproc.py` always writes the final one. Alternative methods (SoupX vs DecontX, DoubletFinder vs
+scDblFinder) are chosen *inside* a rule from config, so adding a method does not change the DAG shape.
+The pipeline is:
 
 ```
 cellranger outs ─┬─→ ambient (R: soupx|decontx) ─→ filterbycount (py) ─┬─→ doubletfinder (R) ─┐
                  ├─→ barcoderank (py)                                  └─→ scdblfinder  (R) ─┤
                  └─→ nuclear_fraction (py, only if BAM present)                               │
                      filterdoublet (py) ←──────────────────────────────────────────────────────┘
-                       └─→ result/{s}.h5ad ─→ postproc (py) ─→ postproc/{s}.h5ad
+                       └─→ filterdoublet/{s}.h5ad ─→ postproc (py) ─→ result/{s}.h5ad
                      qcreport (py) → report.html    slidereport (py→LaTeX→tectonic) → report_slides.pdf
 ```
 
 The R doublet steps write only a per-barcode metadata TSV; Python applies it. R never rewrites the matrix,
 which keeps a second serializer out of the count path.
+
+**`result/` is what a user takes away**, and the final matrix is `postproc`'s output — not an intermediate
+in a `postproc/` directory that readers mistook for a leftover. Every stage writes to `<rulename>/`,
+including `filterdoublet/`; only the final matrix, the doublet statistics and the two reports live in
+`result/`. Both kept matrices carry `_obs.txt.gz`/`_var.txt.gz` dumps written by `qcutil.write_obs_var`,
+indexed by `barcode`/`gene`, so `.obs` and `.var` are readable without anndata. Rules use **named**
+outputs (`h5ad=`, `obs=`, `var=`) — with five outputs on `filterdoublet`, positional indices were a bug
+waiting to happen.
 
 **No step has a skip flag.** Doublet detection is selected by `doublet.run` (schema: at least one
 caller), so `doublet.skip` is gone — `config.smk` errors on `skip: true` rather than quietly writing a

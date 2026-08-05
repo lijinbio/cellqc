@@ -21,9 +21,9 @@ digraph cellqc {
 	filter  [label="Filter on counts (scanpy)\nUMI, genes, % mitochondrial", color="#106e78", penwidth=1.8];
 	doublet [label="Doublets\nDoubletFinder + scDblFinder\none configured caller removes cells",
 		color="#106e78", penwidth=1.8];
-	result  [label="result/{sample}.h5ad\nQC'd counts + per-cell QC metrics",
+	result  [label="filterdoublet/{sample}.h5ad\nQC'd counts + per-cell QC metrics",
 		fillcolor="#e6f0f1", color="#106e78", penwidth=1.8];
-	post    [label="postproc/{sample}.h5ad\nready for integration",
+	post    [label="result/{sample}.h5ad\nfinal: ready for integration\n+ {sample}_obs.txt.gz / _var.txt.gz",
 		fillcolor="#e6f0f1", color="#106e78", penwidth=1.8];
 
 	/* Diagnostics: reported, never applied. */

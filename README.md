@@ -143,7 +143,47 @@ callers, and a caller you do not want is left out of `doublet.run`. Doublet dete
 | doublet.decider | The single caller whose call removes cells. Keeping the decision with one caller avoids an undeclared ensemble: a union removes more cells than the assumed multiplet rate, an intersection fewer. |
 | doublet.findpK | Estimate pK by mean-variance bimodality coefficient (DoubletFinder only). |
 | doublet.pK | Preset neighbourhood size, used when `findpK: false`. |
-| doublet.rate, doublet.capacity | Expected doublet fraction is `rate * ncell / (nreaction * capacity)`. Hard-coded in v0.1.0; exposed so the assumption is visible. |
+| doublet.rate, doublet.capacity | Expected doublet fraction is `rate * ncell / (nreaction * capacity)` — a straight line through the origin in the number of cells recovered. Hard-coded in v0.1.0; exposed so the assumption is visible. See below. |
+
+#### Why the expected doublet rate is linear in cell yield
+
+Cells are loaded into GEMs at limiting dilution, so the number of cells per droplet is Poisson with mean
+λ = (cells loaded) / (number of GEMs). Among droplets that contain at least one cell, the fraction holding
+two or more is
+
+```
+P(≥2 | ≥1) = 1 − λ / (e^λ − 1)  ≈  λ/2      for small λ
+```
+
+λ is proportional to how many cells were loaded, and the cells recovered are proportional to λ as well, so
+**over the loading range the instrument supports, the multiplet fraction is proportional to the number of
+cells recovered.** That is why the multiplet rate is quoted as a rate *per thousand cells* rather than as a
+single number: 10x Genomics user guides give ≈0.8% multiplets per 1,000 cells recovered (≈8% at 10,000
+cells), and scDblFinder's default `dbr` uses the same rule of thumb at ≈1% per 1,000 cells captured.
+Bloom (2018) derives the Poisson treatment exactly, including the correction needed when the mixed cell
+types are not in equal proportion.
+
+`doublet.rate` and `doublet.capacity` are the two ends of that line: `rate` multiplets at `capacity` cells
+recovered. The defaults (0.1 at 13,000) give 0.77% per 1,000 cells, i.e. the 10x specification, and
+reproduce v0.1.0's hard-coded constants exactly. To use scDblFinder's 1% per 1,000 instead, set
+`rate: 0.1, capacity: 10000`.
+
+Two limits are worth knowing. The linear form is the small-λ limit: the exact Poisson expression bends
+*below* the line as loading increases (at λ = 0.2 it is 9.7% rather than 10%), so the linear rule slightly
+over-estimates at high yields. And `nreaction` divides the fraction because pooled reactions are separate
+emulsions — a cell from one reaction cannot share a droplet with a cell from another.
+
+References:
+
+- Bloom JD (2018) *Estimating the frequency of multiplets in single-cell RNA sequencing from cell-mixing
+  experiments.* PeerJ 6:e5578. <https://peerj.com/articles/5578/>
+- 10x Genomics Chromium Single Cell reagent user guides / technical notes, multiplet rate vs targeted cell
+  recovery (e.g. [CG000422](https://cdn.10xgenomics.com/image/upload/v1660261286/support-documents/CG000422_ChroumiumNextGEM_SingleCell3-_HT_v3.1_Reagent__Workflow___Data_Overview_Rev_A_.pdf)).
+- McGinnis CS, Murrow LM, Gartner ZJ (2019) *DoubletFinder.* Cell Systems 8:329–337 — takes `nExp` from the
+  10x multiplet-rate table. <https://doi.org/10.1016/j.cels.2019.03.003>
+- Germain P-L et al. (2021) *Doublet identification in single-cell sequencing data using scDblFinder.*
+  F1000Research 10:979 — "roughly 1% per 1000 cells captured".
+  <https://f1000research.com/articles/10-979/v2>
 
 Both callers are given the same expected doublet rate, so a difference between them reflects the methods
 rather than differing priors. Their concordance (2×2 table and Cohen's κ) is reported. **Concordance is a
@@ -158,14 +198,15 @@ the true heterotypic count. The bias direction is known, constant, and stated in
 
 | Path | Contents |
 |---|---|
-| `result/{sample}.h5ad` | QC'd count matrix. `.obs` carries the QC metrics and every doublet caller's score/class; `.uns` records which caller decided removal. |
-| `postproc/{sample}.h5ad` | The same matrix prepared for integration: sample-prefixed barcodes, unique var names, no `raw` layer, nuclear fraction attached when available. |
+| `result/{sample}.h5ad` | **The final matrix.** QC'd counts prepared for integration: sample-prefixed barcodes, unique var names, no `raw` layer, nuclear fraction attached when available. `.obs` carries the QC metrics and every doublet caller's score/class; `.uns` records which caller decided removal. |
+| `result/{sample}_obs.txt.gz`, `result/{sample}_var.txt.gz` | `.obs` and `.var` as gzipped TSVs, indexed by `barcode` and `gene`. Everything the matrix knows about each cell and each feature, readable without anndata. |
+| `filterdoublet/{sample}.h5ad` | The same cells before the integration prep — original barcodes, no sample prefix, no nuclear fraction. With its own `_obs`/`_var` dumps. |
 | `result/report.html` | Self-contained HTML QC report; all figures inlined. |
 | `result/report_slides.pdf` | Presentation-ready beamer deck: Cell Ranger metrics, barcode rank, ambient RNA, QC violins, nuclear fraction, doublet calls, and a limitations slide. |
 
 Per-stage outputs (`ambient/`, `barcoderank/`, `nuclear_fraction/`, `filterbycount/`, `doubletfinder/`,
-`scdblfinder/`) keep the statistics tables and figures. Every figure is written as a vector PDF with
-editable text alongside a PNG for the HTML report.
+`scdblfinder/`, `filterdoublet/`) keep the statistics tables and figures. Every figure is written as a
+vector PDF with editable text alongside a 300 dpi PNG for the HTML report.
 
 ### An example
 

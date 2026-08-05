@@ -59,6 +59,33 @@ def savefig(fig, stem, png=True):
 	return written
 
 
+# --- Matrix annotations ------------------------------------------------------
+
+OBS_INDEX_NAME = 'barcode'
+VAR_INDEX_NAME = 'gene'
+
+
+def write_obs_var(adata, obs_file, var_file):
+	"""Write `.obs` and `.var` beside the matrix as gzipped TSVs.
+
+	Every matrix cellqc keeps gets these, so the per-cell QC metrics and the
+	feature table can be read (and joined on `barcode` / `gene`) without opening
+	the `.h5ad` at all -- by R, by a spreadsheet, or by someone who does not have
+	anndata installed. The index is named rather than left blank, because an
+	unnamed first column is what makes a table like this ambiguous to reload.
+	"""
+	obs = adata.obs.copy()
+	obs.index = obs.index.astype(str)
+	obs.index.name = OBS_INDEX_NAME
+	obs.to_csv(obs_file, sep='\t', index=True, compression='gzip')
+
+	var = adata.var.copy()
+	var.index = var.index.astype(str)
+	var.index.name = VAR_INDEX_NAME
+	var.to_csv(var_file, sep='\t', index=True, compression='gzip')
+	return obs_file, var_file
+
+
 # --- Reproducibility ---------------------------------------------------------
 
 def set_seed(seed):
@@ -123,14 +150,34 @@ CALLER_COLUMNS = {
 def expected_doublet_rate(ncell, nreaction, rate, capacity):
 	"""10x multiplet-rate rule of thumb, as used since v0.1.0.
 
-	rate * ncell / (nreaction * capacity) -- with the v0.1.0 defaults
-	(rate=0.1, capacity=13000) this is the familiar ~0.8% per 1,000 cells
-	recovered. The two constants were hard-coded in v0.1.0; they are config
-	parameters now so the assumption is visible, but the defaults reproduce
-	v0.1.0 exactly.
+	rate * ncell / (nreaction * capacity) -- linear in the number of cells
+	recovered. The linearity is not an approximation of convenience: cells are
+	loaded at limiting dilution, so occupancy is Poisson with mean lambda, and
+	the fraction of occupied droplets holding two or more cells is
+	1 - lambda/(exp(lambda) - 1), which is lambda/2 to first order. lambda is
+	proportional to the cells loaded, hence the multiplet fraction is
+	proportional to the cells recovered, and the rate is quoted per thousand
+	cells rather than as one number.
 
-	Returns (ratio, n_expected). Not adjusted for homotypic doublets -- see the
-	caveat carried in the reports.
+	With the v0.1.0 defaults (rate=0.1, capacity=13000) this is 0.77% per 1,000
+	cells recovered, i.e. the ~0.8% per 1,000 that 10x publishes. scDblFinder's
+	default assumes ~1% per 1,000 (rate=0.1, capacity=10000 here). The constants
+	were hard-coded in v0.1.0; they are config parameters now so the assumption
+	is visible, and the defaults reproduce v0.1.0 exactly.
+
+	`nreaction` divides the fraction because pooled reactions are separate
+	emulsions: a cell from one reaction cannot share a droplet with a cell from
+	another.
+
+	Two known biases, both upward: the linear form is the small-lambda limit and
+	sits slightly above the exact Poisson expression at high yields, and
+	homotypic doublets are not modelled -- see the caveat carried in the reports.
+
+	References: Bloom (2018) PeerJ 6:e5578 (exact Poisson treatment);
+	10x Genomics Chromium user guides (multiplet rate vs cell recovery);
+	Germain et al. (2021) F1000Research 10:979 (scDblFinder's dbr).
+
+	Returns (ratio, n_expected).
 	"""
 	ratio = round(rate * ncell / (nreaction * capacity), 2)
 	return ratio, int(round(ratio * ncell))

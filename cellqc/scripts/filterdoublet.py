@@ -24,9 +24,11 @@ from cellqc import qcutil
 
 in_h5ad = snakemake.input['h5ad']
 in_meta = list(snakemake.input['metadata'])
-out_h5ad = snakemake.output[0]
-out_summary = snakemake.output[1]
-out_concordance = snakemake.output[2]
+out_h5ad = snakemake.output['h5ad']
+out_obs = snakemake.output['obs']
+out_var = snakemake.output['var']
+out_summary = snakemake.output['summary']
+out_concordance = snakemake.output['concordance']
 
 CONCORDANCE_COLUMNS = [
 	'sampleid', 'caller_a', 'caller_b', 'both_doublet', 'only_a', 'only_b',
@@ -129,6 +131,7 @@ def main():
 
 	filtered = adata[keep].copy()
 	filtered.write_h5ad(out_h5ad, compression='gzip')
+	qcutil.write_obs_var(filtered, out_obs, out_var)
 
 	summary['ncell_before'] = n_before
 	summary['ncell_after'] = int(keep.sum())

@@ -34,8 +34,8 @@ def doublet_metadata(wildcards):
 
 
 def postproc_input(wildcards):
-  """result/ matrix plus the nuclear fraction, when this sample has a BAM."""
-  ins = {'h5ad': f"result/{wildcards.sample}.h5ad"}
+  """QC'd matrix plus the nuclear fraction, when this sample has a BAM."""
+  ins = {'h5ad': f"filterdoublet/{wildcards.sample}.h5ad"}
   if samples.loc[wildcards.sample, 'has_bam']:
     ins['nf'] = f"nuclear_fraction/{wildcards.sample}.txt.gz"
   return ins
@@ -70,7 +70,15 @@ def report_inputs():
 def final_targets():
   """Everything `rule all` should ask for, given which steps apply."""
   ids = samples['sample'].tolist()
-  targets = expand(["result/{sample}.h5ad", "postproc/{sample}.h5ad"], sample=ids)
+  # result/{s}.h5ad is postproc's output, the final matrix; filterdoublet/{s}.h5ad
+  # is the same cells before the integration prep. Both carry an _obs/_var dump.
+  targets = expand(
+    [
+      "result/{sample}.h5ad", "result/{sample}_obs.txt.gz", "result/{sample}_var.txt.gz",
+      "filterdoublet/{sample}.h5ad",
+      "filterdoublet/{sample}_obs.txt.gz", "filterdoublet/{sample}_var.txt.gz",
+      ],
+    sample=ids)
   targets += expand(["barcoderank/{sample}_barcoderank.pdf"], sample=ids)
   targets += expand(["nuclear_fraction/{sample}.txt.gz"], sample=nf_samples)
   targets += ["result/report.html", "result/report_slides.pdf"]

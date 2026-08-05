@@ -107,8 +107,10 @@ properties:
         maximum: 1
         description: >
           10x multiplet rate at `capacity` cells recovered. Expected doublet
-          fraction is rate * ncell / (nreaction * capacity). Hard-coded as 0.1
-          in v0.1.0; exposed here so the assumption is visible. NOT adjusted for
+          fraction is rate * ncell / (nreaction * capacity), linear in cell
+          yield because droplet occupancy is Poisson (see README, "Why the
+          expected doublet rate is linear in cell yield"). Hard-coded as 0.1 in
+          v0.1.0; exposed here so the assumption is visible. NOT adjusted for
           homotypic doublets, which makes it an over-estimate of the detectable
           doublet count -- the step removes slightly more cells than the true
           heterotypic count.
