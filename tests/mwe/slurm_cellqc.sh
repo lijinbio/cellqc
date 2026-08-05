@@ -24,7 +24,7 @@ set -euo pipefail
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate cellqc_v0.2.0
 
-INDIR=/dfs3b/ruic20_lab/jinl14/mrrdir/.local/github/cellqc/tests/CellQC_mwe/cellqc_input/GSE188280_GSM5676874_0715_Macula_Retina
+INDIR="${INDIR:-/dfs3b/ruic20_lab/jinl14/mrrdir/.local/github/cellqc/tests/CellQC_mwe/cellqc_input/GSE188280_GSM5676874_0715_Macula_Retina}"
 WORKDIR="${WORKDIR:-$PWD}"
 OUTDIR="${OUTDIR:-$WORKDIR/out}"
 

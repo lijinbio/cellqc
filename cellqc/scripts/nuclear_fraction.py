@@ -183,7 +183,7 @@ def plot(barcodes, nf):
 	ok = np.isfinite(nf) & (umi > 0)
 	fig, ax = plt.subplots(figsize=(4.6, 4.0))
 	# Rasterize the dense scatter inside the vector PDF: the ~1e4 points become
-	# a 500 dpi raster layer while axes and labels stay editable text.
+	# a 600 dpi raster layer while axes and labels stay editable text.
 	ax.scatter(
 		np.log10(umi[ok]), nf[ok],
 		s=3, alpha=0.3, linewidths=0, color='#106e78', rasterized=True,

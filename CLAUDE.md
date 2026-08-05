@@ -52,17 +52,25 @@ cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt
 cellqc -d "$outdir" -c config.yaml $(basharr2cmdopts.sh -o -D -- "${define[@]}")  # -D sample:=:X cellranger:=:/path
 ```
 
-There is no unit-test framework or CI. Validation is an end-to-end run on a reference sample:
+There is no unit-test framework or CI. Testing is three things (see `tests/README.md`):
 
 ```bash
-sbatch --chdir=<shared-dir> tests/mwe/slurm_cellqc.sh        # free partition, ruic20_lab, --requeue
+bash tests/dryrun.sh                                          # seconds, no data: config layer + DAG shape
+sbatch --chdir=<shared-dir> tests/mwe/slurm_cellqc.sh         # free partition, ruic20_lab, --requeue
 python tests/mwe/validate_nuclear_fraction.py <new.txt.gz> <dropletqc_ref.txt.gz> [outdir]
 ```
 
+`tests/dryrun.sh` builds stub Cell Ranger directories (`--dry-run` only needs the paths to exist) and
+asserts which rules the DAG contains for a given config, plus every config-migration and rejection path.
+Run it after touching `config.smk`, the schema, or `Snakefile`.
+
 `tests/mwe/validate_nuclear_fraction.py` is a hard gate on the pysam nuclear-fraction reimplementation
 against DropletQC; if it fails, the correct response is to revert to DropletQC, not to loosen the
-thresholds. The older `tests/*.sh` scripts depend on lab HPC helpers (`trapdebug`, `mrrdir.sh`,
-`slurmtaco.sh`) that are not in this repo.
+thresholds.
+
+Figures in `docs/` are generated: `bash docs/make_figures.sh` renders `docs/workflow.png` from
+`docs/workflow.dot` and `docs/tests/dag.png` from the workflow itself. Do not hand-edit the PNGs — the
+v0.1.0 diagram went stale for a whole release because it existed only as a PNG.
 
 The analysis stack lives in `envs/cellqc.yaml`, not `setup.py` (pip cannot install R packages). `setup.py` declares only what the CLI itself imports. The bioconda recipe is maintained separately at `../bioconda-recipes/recipes/cellqc/meta.yaml`.
 
@@ -92,7 +100,12 @@ cellranger outs ─┬─→ ambient (R: soupx|decontx) ─→ filterbycount (py
 The R doublet steps write only a per-barcode metadata TSV; Python applies it. R never rewrites the matrix,
 which keeps a second serializer out of the count path.
 
-**The nuclear-fraction step has no skip flag.** `config.smk` detects an indexed
+**No step has a skip flag.** Doublet detection is selected by `doublet.run` (schema: at least one
+caller), so `doublet.skip` is gone — `config.smk` errors on `skip: true` rather than quietly writing a
+matrix with doublets removed, and warns on `skip: false`. `Snakefile` includes both caller rule files
+unconditionally.
+
+**The nuclear-fraction step has no skip flag either.** `config.smk` detects an indexed
 `possorted_genome_bam.bam` per sample at DAG-construction time and populates `nf_samples`; `final_targets()`
 only requests it for those, and `postproc_input()` drops the input for the rest.
 
@@ -107,8 +120,9 @@ own report module). `scripts/slidereport.py` renders `template/slides.tex.jinja2
 `tectonic`; that template uses LaTeX-safe Jinja delimiters (`((* *))`, `((( )))`) so TeX braces survive.
 
 **Figure policy** lives in `cellqc/qcutil.py`: every plot is written as a vector PDF with editable text
-(`pdf.fonttype=42`) for the slides *and* a PNG for the HTML, with dense scatter layers `rasterized=True`
-at 500 dpi.
+(`pdf.fonttype=42`) for the slides *and* a 300 dpi PNG for the HTML, with dense scatter layers
+`rasterized=True` at `RASTER_DPI` (600). The R scripts hard-code the same PNG dpi in `ggsave`/`png` —
+change them together.
 
 ## Conventions
 

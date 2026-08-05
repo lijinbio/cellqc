@@ -21,8 +21,8 @@ scope as of v0.2.0 — annotate downstream.
 
 ![workflow](docs/workflow.png)
 
-> **Note:** `docs/workflow.png` still shows the v0.1.0 pipeline, which included dropkick and scPred. Both
-> were removed in v0.2.0; the diagram needs regenerating.
+Both figures in `docs/` are generated from source by `bash docs/make_figures.sh` — `workflow.png` from
+`docs/workflow.dot`, and the job DAG below straight from the workflow itself.
 
 ## Installation
 
@@ -97,7 +97,6 @@ filterbycount:
   minfeature: 300
   mito: 10
 doublet:
-  skip: false
   run: [doubletfinder, scdblfinder]   # callers to execute
   decider: doubletfinder              # the single caller whose call removes cells
   findpK: false
@@ -135,9 +134,11 @@ unreviewed auto-filtering.
 
 4. `doublet`
 
+There is **no skip flag**, for the same reason `nuclear_fraction` has none: what runs is the list of
+callers, and a caller you do not want is left out of `doublet.run`. Doublet detection itself always runs.
+
 | Parameter | Description |
 |-------|-------|
-| doublet.skip | Skip doublet detection entirely. |
 | doublet.run | Which callers to execute: any of `doubletfinder`, `scdblfinder`. Every caller's score and class are written to `.obs` under namespaced columns. |
 | doublet.decider | The single caller whose call removes cells. Keeping the decision with one caller avoids an undeclared ensemble: a union removes more cells than the assumed multiplet rate, an intersection fewer. |
 | doublet.findpK | Estimate pK by mean-variance bimodality coefficient (DoubletFinder only). |
@@ -166,33 +167,32 @@ Per-stage outputs (`ambient/`, `barcoderank/`, `nuclear_fraction/`, `filterbycou
 `scdblfinder/`) keep the statistics tables and figures. Every figure is written as a vector PDF with
 editable text alongside a PNG for the HTML report.
 
-<!--
 ### An example
 
-This example demonstrates the pipeline on two AMD samples. The test data consists of Cell Ranger output directories of two AMD samples, as well as a pretrained calssifier for cell-type annotation.
-
-https://bcm.box.com/s/nnlmgxh8avagje93cih20g1dsxx14if4
-
-After feeding the file locations, a sample file (e.g., `samples.txt`) looks like below.
+A sample file (e.g. `samples.txt`) for two samples:
 
 ```samples.txt
-sample	cellranger
-AMD1	/path/to/cellranger/AMD1/outs
-AMD2	/path/to/cellranger/AMD2/outs
+sample	cellranger	nreaction
+AMD1	/path/to/cellranger/AMD1/outs	1
+AMD2	/path/to/cellranger/AMD2/outs	1
 ```
 
-Below command is to run the pipeline by the installed entrypoint `cellqc`.
+Run it with the installed entry point:
 
 ```
-cellqc -d "$outdir" -t 8 -- samples.txt # with default parameters
-cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt # by customized parameters in config.yaml
+cellqc -d "$outdir" -t 8 -- samples.txt                 # default parameters
+cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt  # customized parameters
+cellqc -d "$outdir" -t 8 -n -- samples.txt              # dry run; writes outdir/config_<timestamp>.yaml
 ```
 
-A directed acyclic graph (DAG) of jobs will be generated. For example,
+The dry run writes the fully resolved configuration, defaults included, to `outdir/config_<timestamp>.yaml`
+— copy that file, edit it, and pass it back with `-c`.
+
+Snakemake builds this job DAG (two samples, both with a BAM, both doublet callers enabled):
 
 ![DAG](docs/tests/dag.png)
 
-A report of result files will be also produced, such as [report.html](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report.html).
-
--->
+Example outputs from the reference run (GSE188280, 13,559 cells) are in `docs/tests/`:
+[report.html](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report.html) and
+[report_slides.pdf](https://github.com/lijinbio/cellqc/blob/master/docs/tests/report_slides.pdf).
 

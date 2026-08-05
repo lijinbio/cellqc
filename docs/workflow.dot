@@ -1,0 +1,66 @@
+/* cellqc v0.2.0 pipeline overview -- source for docs/workflow.png.
+ *
+ * Regenerate with docs/make_figures.sh (or: dot -Tpng -Gdpi=300 docs/workflow.dot
+ * -o docs/workflow.png). Keeping the source in the repo is why the v0.1.0
+ * diagram could go stale for a whole release: it existed only as a PNG.
+ *
+ * The one distinction the diagram has to carry is which steps touch the counts.
+ * Solid = the count matrix is modified. Dashed = computed and reported, never
+ * used to drop a cell.
+ */
+digraph cellqc {
+	graph [bgcolor=white, rankdir=TB, nodesep=0.45, ranksep=0.40, fontname="Helvetica"];
+	node [shape=box, style="rounded,filled", fillcolor="#ffffff", color="#3c3c3c",
+		fontname="Helvetica", fontsize=11, penwidth=1.3, margin="0.20,0.11"];
+	edge [color="#3c3c3c", penwidth=1.3, arrowsize=0.7];
+
+	cr [label="Cell Ranger outs\nraw + filtered .h5, BAM", fillcolor="#eef2f4"];
+
+	/* Counts path: each of these rewrites the matrix. */
+	ambient [label="Ambient RNA\nSoupX (default) | DecontX", color="#106e78", penwidth=1.8];
+	filter  [label="Filter on counts (scanpy)\nUMI, genes, % mitochondrial", color="#106e78", penwidth=1.8];
+	doublet [label="Doublets\nDoubletFinder + scDblFinder\none configured caller removes cells",
+		color="#106e78", penwidth=1.8];
+	result  [label="result/{sample}.h5ad\nQC'd counts + per-cell QC metrics",
+		fillcolor="#e6f0f1", color="#106e78", penwidth=1.8];
+	post    [label="postproc/{sample}.h5ad\nready for integration",
+		fillcolor="#e6f0f1", color="#106e78", penwidth=1.8];
+
+	/* Diagnostics: reported, never applied. */
+	knee [label="Barcode rank\nknee / inflection",
+		style="rounded,dashed,filled", color="#7a7a7a"];
+	nf   [label="Nuclear fraction (pysam)\nrun when the sample has a BAM",
+		style="rounded,dashed,filled", color="#7a7a7a"];
+
+	reports [label="result/report.html\nresult/report_slides.pdf",
+		fillcolor="#f7f1e4", color="#a07a28"];
+
+	/* Main chain, weighted so it stays a straight vertical spine. */
+	cr -> ambient [weight=10];
+	ambient -> filter [weight=10];
+	filter -> doublet [weight=10];
+	doublet -> result [weight=10];
+	result -> post [weight=10];
+
+	cr -> knee [style=dashed, color="#7a7a7a"];
+	cr -> nf   [style=dashed, color="#7a7a7a"];
+	nf -> post [style=dashed, color="#7a7a7a", label=" attached to .obs",
+		fontsize=9, fontcolor="#5a5a5a"];
+
+	/* Both reports are built from one collected set of stats, so the HTML and
+	 * the slides cannot describe different runs. */
+	result -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
+	knee   -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
+
+	note [shape=plaintext, style="", fontsize=9, fontcolor="#5a5a5a",
+		label="dotted: every stage also contributes its stats table and figures\lto both reports (cellqc/reportdata.py)\l"];
+	reports -> note [style=invis];
+
+	legend [shape=box, style="rounded", color="#cccccc", fontsize=9, fontcolor="#3c3c3c",
+		label="solid  modifies the count matrix\ldashed  reported only, never filters\l"];
+	post -> legend [style=invis];
+
+	{ rank=same; knee; ambient; nf; }
+	{ rank=same; post; reports; }
+	{ rank=same; legend; note; }
+}

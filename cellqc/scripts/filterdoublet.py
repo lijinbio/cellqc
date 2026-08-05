@@ -36,7 +36,12 @@ CONCORDANCE_COLUMNS = [
 sampleid = snakemake.params['sampleid']
 callers = list(snakemake.params['callers'])
 decider = snakemake.params['decider']
-skip = bool(snakemake.params['skip'])
+
+# There is no skip flag: the schema requires at least one caller in doublet.run
+# and config.smk requires the decider to be one of them. An empty list here
+# would mean the DAG was built from a config the validator should have rejected.
+if not callers:
+	raise ValueError(f'{sampleid}: no doublet caller configured; doublet.run must list at least one.')
 
 
 def cohens_kappa(a, b):
@@ -58,18 +63,6 @@ def main():
 	adata = sc.read_h5ad(in_h5ad)
 	n_before = adata.n_obs
 	rows = []
-
-	if skip or not callers:
-		print(f'[filterdoublet] {sampleid}: doublet detection skipped, {n_before} cells pass through', flush=True)
-		adata.uns['cellqc_doublet_decider'] = 'none'
-		adata.write_h5ad(out_h5ad, compression='gzip')
-		pd.DataFrame([{
-			'sampleid': sampleid, 'caller': 'none', 'is_decider': True,
-			'ndoublet': 0, 'ncell': n_before, 'frac_doublet': 0.0,
-			'ncell_before': n_before, 'ncell_after': n_before, 'decider': 'none',
-			}]).to_csv(out_summary, sep='\t', index=False)
-		pd.DataFrame(columns=CONCORDANCE_COLUMNS).to_csv(out_concordance, sep='\t', index=False)
-		return
 
 	# Merge each caller's metadata onto .obs by barcode.
 	for path in in_meta:

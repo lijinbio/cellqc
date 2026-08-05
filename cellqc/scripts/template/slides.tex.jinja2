@@ -26,6 +26,20 @@
 \usepackage{longtable}
 \usepackage[T1]{fontenc}
 
+% Shrink a box to the text width only when it is too wide -- never enlarge it.
+% Tables are built from stats files whose width depends on the data, so without
+% this a wide cohort table silently runs off the right-hand edge of the slide.
+\newsavebox{\fitbox}
+\newcommand{\fitwidth}[1]{%
+	\sbox{\fitbox}{#1}%
+	\ifdim\wd\fitbox>\linewidth
+		\resizebox{\linewidth}{!}{\usebox{\fitbox}}%
+	\else
+		\usebox{\fitbox}%
+	\fi}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+
 \title{((( title )))}
 \subtitle{Single-cell RNA-seq quality control}
 \date{((( date )))}
@@ -50,8 +64,8 @@
 		\item Ambient RNA: \textbf{((( ambient_method )))}((* if ambient_compare *)) \\
 			\textcolor{gray}{compared (not applied): ((( ambient_compare|join(', ') )))}((* endif *))
 		\item Filter on counts, genes, \% mitochondrial
-		\item Doublets: ((* if callers *))((( callers|join(', ') )))((* else *))skipped((* endif *))
-			((* if decider *)) \\ \textcolor{gray}{cells removed by \textbf{((( decider )))} only}((* endif *))
+		\item Doublets: ((( callers|join(', ') ))) \\
+			\textcolor{gray}{cells removed by \textbf{((( decider )))} only}
 		\item Nuclear fraction: ((( nf_ran )))/((( nsample ))) sample((( 's' if nsample != 1 else '' )))
 	\end{enumerate}
 	\end{column}
@@ -71,8 +85,9 @@
 ((* if cascade_table *))
 \begin{frame}{Cells retained at each stage}
 	\centering
-	((( cascade_table )))
-	\vspace{0.4em}
+	\small
+	\fitwidth{((( cascade_table )))}
+	\vspace{1em}
 	\par\footnotesize Every exclusion is the difference between two adjacent columns.
 \end{frame}
 ((* endif *))
@@ -80,10 +95,13 @@
 ((# --- Per sample ------------------------------------------------------- #))
 ((* for s in samples *))
 \begin{frame}{((( s.label ))): Cell Ranger summary}
-	\centering\tiny
-	((* if s.metrics_a *))((( s.metrics_a )))((* endif *))
-	((* if s.metrics_b *))\vspace{0.6em} ((( s.metrics_b )))((* endif *))
-	((* if not s.metrics_a *))\normalsize No \texttt{metrics\_summary.csv} found for this sample.((* endif *))
+	\centering
+((* if s.metrics *))
+	\small
+	\fitwidth{((( s.metrics )))}
+((* else *))
+	No \texttt{metrics\_summary.csv} found for this sample.
+((* endif *))
 \end{frame}
 
 ((* for fig in s.figures *))

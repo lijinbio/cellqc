@@ -47,7 +47,6 @@ default_params={
 		'mito': 10,
 	},
 	'doublet': {
-		'skip': False,
 		'run': ['doubletfinder', 'scdblfinder'],
 		'decider': 'doubletfinder',
 		'findpK': False,
@@ -77,6 +76,23 @@ if 'doubletfinder' in config:
 	migrated=config.setdefault('doublet', {})
 	for k, v in legacy.items():
 		migrated.setdefault(k, v)
+
+# There is no doublet skip flag, for the same reason the nuclear-fraction step
+# has none: which callers run is `doublet.run`, and a caller that should not run
+# is left out of it. `skip: false` was redundant with that; `skip: true` has no
+# equivalent, so it is an error rather than a warning -- silently ignoring it
+# would write a matrix with doublets removed to a config that asked for none.
+if 'skip' in config.get('doublet', {}):
+	if config['doublet'].pop('skip'):
+		raise ValueError(
+			"config key 'doublet.skip' was removed: doublet detection always runs. "
+			"There is no configuration that keeps every called doublet, so a run that "
+			"previously set 'doublet.skip: true' would now silently lose cells. "
+			"Remove the key and choose the callers with doublet.run/doublet.decider."
+			)
+	print(
+		"Warning: config key 'doublet.skip' is obsolete and was ignored; select callers with doublet.run.",
+		file=sys.stderr)
 
 # Assign default params to config if not existing
 for key, paramdict in default_params.items():

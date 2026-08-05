@@ -57,7 +57,7 @@ def collect(samples, sampledir, config, nf_samples, callers):
 		'nf_samples': list(nf_samples),
 		'nf_missing': [s for s in ids if s not in set(nf_samples)],
 		'callers': list(callers),
-		'decider': config['doublet'].get('decider') if not config['doublet'].get('skip') else None,
+		'decider': config['doublet']['decider'],
 		'ambient_method': config['ambient']['method'],
 		'ambient_compare': list(config['ambient'].get('compare', [])),
 		'cellranger_metrics': metrics,

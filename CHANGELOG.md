@@ -1,3 +1,38 @@
+# Unreleased
+
+## Breaking changes
+
+- Removed `doublet.skip`. Doublet detection always runs; the callers are `doublet.run` and a caller you do
+  not want is left out of it, which is the same convention `nuclear_fraction` already used (no skip flag).
+  `doublet.skip: false` warns and is dropped. `doublet.skip: true` is an **error**, not a warning: there is
+  no configuration that keeps every called doublet, so continuing would quietly remove cells from a run
+  that asked for none.
+
+## Changed
+
+- Figures: PNG output raised from 200 to 300 dpi and rasterized layers inside the vector PDFs from 500 to
+  600 dpi. Both reports get the higher-resolution PNGs, so `result/report.html` grows accordingly. The R
+  steps (`ggsave`, `png`) carry the same numbers — change them together with `cellqc/qcutil.py`.
+- Slide deck: the "Cells retained at each stage" table ran off the right-hand edge of the slide and the
+  Cell Ranger metrics were set in 5pt type in the middle of an empty frame. Tables now get real column
+  names, are folded two-up where they are long, and are wrapped in a fit-to-width box that shrinks a table
+  only when it would overflow, so no data-dependent table can silently run off a slide again.
+- `docs/workflow.png` redrawn for v0.2.0 (it still showed dropkick and scPred) and now generated from
+  `docs/workflow.dot`; `docs/tests/dag.png` regenerated from the workflow itself. Both come from
+  `bash docs/make_figures.sh`. `docs/tests/` also carries the current example report and slide deck.
+
+## Added
+
+- `tests/dryrun.sh`: a data-free check of the config layer and DAG shape (stage selection, per-sample BAM
+  detection, every config migration and rejection path). Runs in seconds; no HPC, no test data.
+- `tests/nreaction/main.sh` is self-contained: it checks the `rate * ncell / (nreaction * capacity)`
+  arithmetic with no data and runs the pipeline only when given `CELLRANGER=`.
+
+## Removed
+
+- `tests/main.sh`, which depended on lab-only helpers (`trapdebug`, `mrrdir.sh`, `slurmtaco.sh`) and
+  called `cellqc` without a sample file.
+
 # v0.2.0 - Aug 5, 2026
 
 ## Breaking changes

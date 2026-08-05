@@ -15,10 +15,8 @@
         &nbsp;|&nbsp; random seed {{ seed }}
         &nbsp;|&nbsp; ambient: <strong>{{ ambient_method }}</strong>{% if ambient_compare %}
         (compared, not applied: {{ ambient_compare|join(', ') }}){% endif %}
-        &nbsp;|&nbsp; doublets:
-        {%- if callers %} {{ callers|join(', ') }}
-        {%- if decider %} (cells removed by <strong>{{ decider }}</strong> only){% endif %}
-        {%- else %} skipped{% endif %}
+        &nbsp;|&nbsp; doublets: {{ callers|join(', ') }}
+        (cells removed by <strong>{{ decider }}</strong> only)
       </p>
     </div>
 

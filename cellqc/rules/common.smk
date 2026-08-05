@@ -22,8 +22,9 @@ def get_nreaction(wildcards):
 
 # Callers that run, and the metadata each one emits. The deciding caller is a
 # config value, so switching which method removes cells is a config edit rather
-# than a rewiring of the DAG.
-doublet_callers = [] if config['doublet']['skip'] else list(config['doublet']['run'])
+# than a rewiring of the DAG. The schema requires at least one caller: doublet
+# detection has no skip flag.
+doublet_callers = list(config['doublet']['run'])
 ambient_methods = [config['ambient']['method']] + list(config['ambient']['compare'])
 ambient_methods = [m for m in ambient_methods if m != 'none']
 

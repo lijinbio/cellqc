@@ -75,9 +75,11 @@ properties:
 
   doublet:
     type: object
+    description: >
+      No skip key by design, as for nuclear_fraction. Doublet detection always
+      runs; `run` selects the callers and `decider` selects the one that removes
+      cells.
     properties:
-      skip:
-        type: boolean
       run:
         type: array
         minItems: 1

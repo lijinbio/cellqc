@@ -15,11 +15,15 @@ import numpy as np
 # Every figure is emitted twice from one canvas: a vector PDF whose text stays
 # editable (Type 42 / TrueType, never Type 3 outlines) for slides and figures,
 # and a raster PNG for the HTML report, which cannot inline a PDF in an <img>.
-# Dense layers (scatter of ~1e4 points) are rasterized inside the PDF at 500 dpi
+# Dense layers (scatter of ~1e4 points) are rasterized inside the PDF at 600 dpi
 # so the file stays small without turning the axis labels into pixels.
+#
+# PNG_DPI is 300 -- print resolution. The PNGs are base64-inlined into the HTML
+# report, so this is the one figure setting that trades report size for
+# legibility; 200 dpi was visibly soft when a reader zoomed into a violin plot.
 
-RASTER_DPI = 500
-PNG_DPI = 200
+RASTER_DPI = 600
+PNG_DPI = 300
 
 
 def setup_matplotlib():

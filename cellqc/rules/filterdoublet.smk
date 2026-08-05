@@ -1,7 +1,7 @@
 # Single terminus of the QC chain. Every caller in doublet.run contributes its
-# score/class to .obs; only doublet.decider removes cells. When doublet.skip is
-# set there is no metadata at all and this rule just relabels the matrix, which
-# is why the old three-way conditional chaining is gone.
+# score/class to .obs; only doublet.decider removes cells. Which callers ran is
+# a config value rather than a branch in the DAG, which is why the old three-way
+# conditional chaining is gone.
 rule filterdoublet:
   input:
     h5ad="filterbycount/{sample}.h5ad",
@@ -14,6 +14,5 @@ rule filterdoublet:
     sampleid="{sample}",
     callers=doublet_callers,
     decider=config["doublet"]["decider"],
-    skip=config["doublet"]["skip"],
   script:
     "../scripts/filterdoublet.py"

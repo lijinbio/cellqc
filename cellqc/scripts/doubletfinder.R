@@ -126,12 +126,12 @@ p=ggplot(pdat, aes(x=class, y=pANN, fill=class))+
 	labs(x=NULL, y='pANN', title=sprintf('%s: pANN by classification (pK=%g)', sampleid, pKopt))+
 	theme_cellqc
 ggsave(p, file=outpann_pdf, width=4.5, height=4, units='in', device=cairo_pdf)
-ggsave(p, file=outpann_png, width=4.5, height=4, units='in', dpi=200)
+ggsave(p, file=outpann_png, width=4.5, height=4, units='in', dpi=300)
 
 p=DimPlot(res, reduction='umap', group.by='DF_class', cols=c(Singlet='#4c72b0', Doublet='#c44e52'))+
 	labs(title=sprintf('%s: DoubletFinder calls', sampleid))+theme_cellqc
 ggsave(p, file=outumap_pdf, width=5, height=4.2, units='in', device=cairo_pdf)
-ggsave(p, file=outumap_png, width=5, height=4.2, units='in', dpi=200)
+ggsave(p, file=outumap_png, width=5, height=4.2, units='in', dpi=300)
 
 cat(sprintf('[doubletfinder] %s: %d/%d cells called doublet (%.2f%%)\n',
 	sampleid, ndoublet, ncell, 100*ndoublet/ncell))

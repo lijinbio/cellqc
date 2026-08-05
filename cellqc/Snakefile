@@ -14,12 +14,12 @@ include: "rules/nuclear_fraction.smk"
 include: "rules/filterbycount.smk"
 
 # Doublet callers are selected by config, not by conditional rule inclusion.
-# Both rule files are always defined; `doublet_callers` decides which outputs are
+# Both rule files are always defined; `doublet.run` decides which outputs are
 # ever requested, and `doublet.decider` decides which one removes cells. That
-# keeps the DAG shape fixed no matter how the callers are configured.
-if not config["doublet"]["skip"]:
-  include: "rules/doubletfinder.smk"
-  include: "rules/scdblfinder.smk"
+# keeps the DAG shape fixed no matter how the callers are configured, and it is
+# why there is no skip flag left to thread through the includes.
+include: "rules/doubletfinder.smk"
+include: "rules/scdblfinder.smk"
 
 include: "rules/filterdoublet.smk"
 include: "rules/postproc.smk"

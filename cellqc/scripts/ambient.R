@@ -92,7 +92,7 @@ plot_decontx=function(contamination) {
 
 draw=function(fn) {
 	pdf(outpdf, width=6, height=4.5); fn(); dev.off()
-	png(outpng, width=6, height=4.5, units='in', res=200); fn(); dev.off()
+	png(outpng, width=6, height=4.5, units='in', res=300); fn(); dev.off()
 }
 
 ## ---- SoupX -----------------------------------------------------------------

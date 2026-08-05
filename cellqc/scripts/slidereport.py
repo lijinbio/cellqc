@@ -32,9 +32,23 @@ outfile = snakemake.output[0]
 
 TEMPLATE_DIR = Path(__file__).parent / 'template'
 
-# Cell Ranger's metrics table has 20 columns and will not fit a 16:9 slide.
-# Split it rather than shrinking it to unreadable type.
-METRICS_SPLIT = 10
+# Cell Ranger's metrics table has ~20 columns and will not fit a 16:9 slide as
+# one row. It is transposed and folded into two metric/value pairs side by side,
+# which fills the slide at a readable size instead of leaving a strip of 5pt
+# type in the middle of an empty frame.
+
+# Headers straight off the stats files are snake_case and long enough to push the
+# cascade table off the right-hand edge of the slide. The table is the one a
+# reader is meant to audit, so it gets real column names.
+CASCADE_HEADERS = {
+	'sampleid': 'Sample',
+	'cellranger_cells': 'Cell Ranger cells',
+	'after_filterbycount': 'After count filter',
+	'removed_by_count': 'Removed (count)',
+	'after_doublet': 'After doublet',
+	'removed_by_doublet': 'Removed (doublet)',
+	'frac_retained': 'Retained',
+	}
 
 
 def tex_escape(text):
@@ -50,20 +64,25 @@ def tex_escape(text):
 	return out
 
 
-def tex_table(df, max_rows=None, transpose=False):
+def tex_table(df, max_rows=None, headers=None, align=None):
 	"""A booktabs tabular. Returns None for an empty frame so the template can
-	drop the frame rather than emit an empty box."""
+	drop the frame rather than emit an empty box.
+
+	`headers` renames columns for display; `align` is a per-column alignment
+	string (defaults to left for the first column and right for the rest, which
+	is what makes columns of counts readable).
+	"""
 	if df is None or not len(df):
 		return None
 	df = df.copy()
 	if max_rows:
 		df = df.head(max_rows)
-	if transpose:
-		df = df.T.reset_index()
-		df.columns = ['metric'] + [f'v{i}' for i in range(1, df.shape[1])]
 	cols = list(df.columns)
-	lines = [r'\begin{tabular}{' + 'l' * len(cols) + '}', r'\toprule']
-	lines.append(' & '.join(rf'\textbf{{{tex_escape(c)}}}' for c in cols) + r' \\')
+	labels = [(headers or {}).get(c, c) for c in cols]
+	if align is None:
+		align = 'l' + 'r' * (len(cols) - 1)
+	lines = [r'\begin{tabular}{' + align + '}', r'\toprule']
+	lines.append(' & '.join(rf'\textbf{{{tex_escape(c)}}}' for c in labels) + r' \\')
 	lines.append(r'\midrule')
 	for _, row in df.iterrows():
 		vals = []
@@ -75,6 +94,26 @@ def tex_table(df, max_rows=None, transpose=False):
 		lines.append(' & '.join(vals) + r' \\')
 	lines += [r'\bottomrule', r'\end{tabular}']
 	return '\n'.join(lines)
+
+
+def metrics_table(row):
+	"""Cell Ranger metrics for one sample as a two-up metric/value tabular.
+
+	Transposed (20 columns do not fit a slide) and folded in half so the frame
+	is filled at a legible size. `sampleid` is dropped: it is the frame title.
+	"""
+	cols = [c for c in row.columns if c != 'sampleid']
+	pairs = [(c, row.iloc[0][c]) for c in cols]
+	half = (len(pairs) + 1) // 2
+	left, right = pairs[:half], pairs[half:]
+	right += [('', '')] * (len(left) - len(right))
+	folded = pd.DataFrame({
+		'Metric': [k for k, _ in left],
+		'Value': [v for _, v in left],
+		'Metric ': [k for k, _ in right],
+		'Value ': [v for _, v in right],
+		})
+	return tex_table(folded, align='lrlr')
 
 
 def figure_entries(data, sid):
@@ -130,19 +169,14 @@ def main():
 	metrics = data['cellranger_metrics']
 	per_sample = []
 	for sid in data['sample_ids']:
-		m_a = m_b = None
+		m = None
 		if metrics is not None:
 			row = metrics[metrics['sampleid'] == sid]
 			if len(row):
-				cols = [c for c in row.columns if c != 'sampleid']
-				first, second = cols[:METRICS_SPLIT], cols[METRICS_SPLIT:]
-				m_a = tex_table(row[['sampleid'] + first], transpose=True)
-				if second:
-					m_b = tex_table(row[second], transpose=True)
+				m = metrics_table(row)
 		per_sample.append({
 			'label': tex_escape(sid),
-			'metrics_a': m_a,
-			'metrics_b': m_b,
+			'metrics': m,
 			'figures': figure_entries(data, sid),
 			})
 
@@ -162,7 +196,7 @@ def main():
 		cfg_mito=config['filterbycount']['mito'],
 		cfg_rate=config['doublet']['rate'],
 		cfg_capacity=config['doublet']['capacity'],
-		cascade_table=tex_table(data['cascade']),
+		cascade_table=tex_table(data['cascade'], headers=CASCADE_HEADERS),
 		samples=per_sample,
 		caveats=[tex_escape(c) for c in data['caveats']],
 		)

@@ -77,7 +77,7 @@ p=ggplot(pdat, aes(x=class, y=score, fill=class))+
 		title=sprintf('%s: scDblFinder score (dbr=%.3f)', sampleid, dbr))+
 	theme_cellqc
 ggsave(p, file=outpdf, width=4.5, height=4, units='in', device=cairo_pdf)
-ggsave(p, file=outpng, width=4.5, height=4, units='in', dpi=200)
+ggsave(p, file=outpng, width=4.5, height=4, units='in', dpi=300)
 
 cat(sprintf('[scdblfinder] %s: %d/%d cells called doublet (%.2f%%)\n',
 	sampleid, ndoublet, ncell, 100*ndoublet/ncell))
