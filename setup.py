@@ -49,10 +49,12 @@ setup(
     url="https://github.com/lijinbio/cellqc",
     version=get_version(),
     zip_safe=False,
-    license="MIT license",
+    # SPDX expression. The "License :: OSI Approved :: MIT License" classifier
+    # that used to sit below is deprecated by setuptools >= 77 in favour of this.
+    license="MIT",
+    license_files=["LICENSE"],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
-        "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
     ],

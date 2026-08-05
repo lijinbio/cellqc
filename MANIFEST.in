@@ -1,12 +1,17 @@
-include *.md LICENSE
+# Name the .md files rather than globbing them: CLAUDE.md is guidance for
+# coding agents working IN this repo and has no business inside an installed
+# package.
+include README.md CHANGELOG.md LICENSE
 include cellqc/Snakefile
 graft cellqc/rules
 graft cellqc/schemas
 graft cellqc/scripts
 graft envs
 
+exclude CLAUDE.md
 exclude .flake8 noxfile.py .coveragerc
 prune tests
+prune docs
 
 global-exclude *.py[cod]
 global-exclude __pycache__
