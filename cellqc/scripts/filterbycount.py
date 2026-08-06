@@ -9,6 +9,12 @@ cell counts are directly comparable:
 	Seurat nFeature_RNA      == scanpy n_genes_by_counts
 	PercentageFeatureSet('^MT-|^mt-') == pct_counts_mt
 
+Those three are computed on the *ambient-corrected* matrix, which is the matrix
+every later stage and the user work with. The same three from the uncorrected
+Cell Ranger counts are carried alongside under a `raw_` prefix, so what the
+ambient correction took off a cell is visible in `.obs` -- and so the filter
+thresholds can be reasoned about on both scales.
+
 v0.1.0 reported only the cell count before and after, which hides which
 threshold did the work. Every criterion is counted separately here, including
 overlaps, so an exclusion can always be attributed.
@@ -20,7 +26,8 @@ import scanpy as sc
 
 from cellqc import qcutil
 
-infile = snakemake.input[0]
+infile = snakemake.input['corrected']
+rawfile = snakemake.input['raw']
 out_h5ad = snakemake.output[0]
 out_violin_before = snakemake.output[1]
 out_violin_after = snakemake.output[3]
@@ -35,10 +42,42 @@ qcutil.set_seed(snakemake.params['seed'])
 
 MITO_PREFIXES = ('MT-', 'mt-')
 
+# The metrics recomputed on the uncorrected counts, and the prefix they get.
+# `raw_` means *before ambient correction* -- the source is the Cell Ranger
+# filtered matrix, the same cells as the corrected one, NOT the all-droplets
+# raw_feature_bc_matrix.h5 that `barcoderank` reads.
+RAW_METRICS = ('total_counts', 'n_genes_by_counts', 'pct_counts_mt')
+RAW_PREFIX = 'raw_'
+
 
 def qc_metrics(adata):
 	adata.var['mt'] = [n.startswith(MITO_PREFIXES) for n in adata.var_names]
 	sc.pp.calculate_qc_metrics(adata, qc_vars=['mt'], percent_top=None, log1p=False, inplace=True)
+	return adata
+
+
+def add_raw_metrics(adata):
+	"""Attach the pre-correction metrics as `raw_total_counts` & co.
+
+	Without them the only per-cell numbers in the final `.obs` are post-ambient,
+	and how much a given cell lost to the correction can be recovered only by
+	reopening the Cell Ranger matrix and joining it by hand. Same metric
+	definitions, same mitochondrial pattern, so the pairs are comparable.
+	"""
+	raw = sc.read_10x_h5(rawfile)
+	raw.var_names_make_unique()
+	raw = qc_metrics(raw)
+
+	missing = adata.obs.index.difference(raw.obs.index)
+	if len(missing):
+		raise ValueError(
+			f'{sampleid}: {len(missing)} of {adata.n_obs} barcodes are absent from {rawfile} '
+			f'(e.g. {list(missing[:3])}). Refusing to write {RAW_PREFIX}* columns that would be '
+			'silently NaN.'
+			)
+	raw_obs = raw.obs.reindex(adata.obs.index)
+	for col in RAW_METRICS:
+		adata.obs[RAW_PREFIX + col] = raw_obs[col].to_numpy()
 	return adata
 
 
@@ -58,6 +97,7 @@ def main():
 			)
 
 	adata = qc_metrics(adata)
+	adata = add_raw_metrics(adata)
 	n_before = adata.n_obs
 	n_mt_genes = int(adata.var['mt'].sum())
 	print(
@@ -72,6 +112,18 @@ def main():
 			'Check that var_names are gene symbols for the expected organism.',
 			flush=True,
 			)
+
+	# What the corrected/uncorrected pair is for, stated once per sample: a
+	# median well away from the reported contamination is worth looking at.
+	raw_tot = adata.obs[RAW_PREFIX + 'total_counts'].to_numpy(dtype=float)
+	tot = adata.obs['total_counts'].to_numpy(dtype=float)
+	removed = np.divide(raw_tot - tot, raw_tot, out=np.full(raw_tot.shape, np.nan), where=raw_tot > 0)
+	print(
+		f'[filterbycount] {sampleid}: ambient correction removed a median '
+		f'{100 * np.nanmedian(removed):.2f}% of a cell\'s UMI '
+		f'({RAW_PREFIX}* columns carry the pre-correction metrics)',
+		flush=True,
+		)
 
 	violin(adata, out_violin_before, 'before filtering')
 

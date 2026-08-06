@@ -141,6 +141,14 @@ unreviewed auto-filtering.
 | filterbycount.minfeature | Minimum detected genes per cell. |
 | filterbycount.mito | Maximum percentage of mitochondrial counts. |
 
+All three are applied to the **ambient-corrected** counts, and `.obs` reports them as `total_counts`,
+`n_genes_by_counts` and `pct_counts_mt`. The same three metrics computed on the uncorrected Cell Ranger
+counts are carried alongside as `raw_total_counts`, `raw_n_genes_by_counts` and `raw_pct_counts_mt`; they
+are informative only, no threshold is applied to them. `raw_` means *before ambient correction* — the
+source is `filtered_feature_bc_matrix.h5`, the same cells, not the all-droplets
+`raw_feature_bc_matrix.h5`. The per-cell fraction the correction removed is
+`1 - total_counts / raw_total_counts`.
+
 4. `doublet`
 
 There is **no skip flag**, for the same reason `nuclear_fraction` has none: what runs is the list of
@@ -207,7 +215,7 @@ the true heterotypic count. The bias direction is known, constant, and stated in
 
 | Path | Contents |
 |---|---|
-| `result/{sample}.h5ad` | **The final matrix.** QC'd counts prepared for integration: sample-prefixed barcodes, unique var names, no `raw` layer, nuclear fraction attached when available. `.obs` carries the QC metrics and every doublet caller's score/class; `.uns` records which caller decided removal. |
+| `result/{sample}.h5ad` | **The final matrix.** QC'd counts prepared for integration: sample-prefixed barcodes, unique var names, no `raw` layer, nuclear fraction attached when available. `.obs` carries the QC metrics on the corrected counts (`total_counts`, …) and their pre-correction counterparts (`raw_total_counts`, …), plus every doublet caller's score/class; `.uns` records which caller decided removal. |
 | `result/{sample}_obs.txt.gz`, `result/{sample}_var.txt.gz` | `.obs` and `.var` as gzipped TSVs, indexed by `barcode` and `gene`. Everything the matrix knows about each cell and each feature, readable without anndata. |
 | `result/metrics.csv` | Every scalar the run produced, one row per sample: Cell Ranger metrics, knee/inflection, ambient contamination per method, per-criterion filter counts, each doublet caller's count and their concordance, nuclear-fraction quartiles, and the retained fraction. Assembled from the same collected data as the reports, so it cannot disagree with them — join on `sampleid` instead of scraping a number out of the HTML. |
 | `result/report.html` | Self-contained HTML QC report; all figures inlined. |

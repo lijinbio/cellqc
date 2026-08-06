@@ -1,3 +1,14 @@
+# Unreleased
+
+- `.obs` of every matrix from `filterbycount` onwards — including `result/{sample}.h5ad` and
+  `result/{sample}_obs.txt.gz` — gains `raw_total_counts`, `raw_n_genes_by_counts` and
+  `raw_pct_counts_mt`: the same three QC metrics computed on the uncorrected Cell Ranger counts. The
+  unprefixed columns were, and remain, post-ambient-correction; nothing about filtering changes, since no
+  threshold is applied to the new columns. `raw_` means *before ambient correction* (source:
+  `filtered_feature_bc_matrix.h5`, the same cells), not the all-droplets `raw_feature_bc_matrix.h5`.
+  `filterbycount` now takes both matrices as named inputs (`corrected=`, `raw=`) and errors if a corrected
+  barcode is missing from the Cell Ranger matrix rather than writing a silently NaN column.
+
 # v0.3.1 - Aug 5, 2026
 
 Packaging release. No behaviour change: the workflow, its outputs and its numbers are identical to v0.3.0.

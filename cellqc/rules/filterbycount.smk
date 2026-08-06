@@ -1,6 +1,9 @@
 rule filterbycount:
   input:
-    "ambient/{sample}.h5",
+    # Both matrices: the corrected one is what gets filtered and written, the
+    # Cell Ranger one only supplies the pre-correction (`raw_*`) QC metrics.
+    corrected="ambient/{sample}.h5",
+    raw=get_filteredh5,
   output:
     "filterbycount/{sample}.h5ad",
     "filterbycount/{sample}_violin_before.pdf",
