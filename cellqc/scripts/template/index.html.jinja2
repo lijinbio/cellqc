@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>cellqc QC report</title>
+    <title>CellQC QC report</title>
     <style>{{ "style.css"|get_resource_as_string }}</style>
   </head>
   <body>
 
     <div class="result">
-      <div class="heading"><h1>cellqc QC report</h1></div>
+      <div class="heading"><h1>CellQC QC report</h1></div>
       <p class="meta">
-        cellqc v{{ version }} &nbsp;|&nbsp; {{ nsample }} sample{{ 's' if nsample != 1 }}
+        CellQC v{{ version }} &nbsp;|&nbsp; {{ nsample }} sample{{ 's' if nsample != 1 }}
         &nbsp;|&nbsp; random seed {{ seed }}
         &nbsp;|&nbsp; ambient: <strong>{{ ambient_method }}</strong>{% if ambient_compare %}
         (compared, not applied: {{ ambient_compare|join(', ') }}){% endif %}
@@ -38,7 +38,7 @@
     {% if barcoderank is not none %}
     <div class="result">
       <div class="heading"><h1>Barcode ranks</h1></div>
-      <p class="blurb">Knee and inflection are descriptive annotations. Cell calling is Cell Ranger EmptyDrops; cellqc does not re-call cells.</p>
+      <p class="blurb">Knee and inflection are descriptive annotations. Cell calling is Cell Ranger EmptyDrops; CellQC does not re-call cells.</p>
       <div class="outer-wrapper"><div class="table-wrapper">{{ barcoderank }}</div></div>
     </div>
     {% endif %}

@@ -242,7 +242,7 @@ def caveats(data):
 		f"(rate={data['config']['doublet'].get('rate')}, "
 		f"capacity={data['config']['doublet'].get('capacity')} cells per reaction), "
 		'not a measurement for this library.',
-		'Cell calling is Cell Ranger EmptyDrops. cellqc does not re-call cells; the '
+		'Cell calling is Cell Ranger EmptyDrops. CellQC does not re-call cells; the '
 		'barcode rank plot is diagnostic only.',
 	]
 	if data['nf_samples']:

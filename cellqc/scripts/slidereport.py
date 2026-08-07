@@ -123,7 +123,7 @@ def figure_entries(data, sid):
 		('barcoderank', 'Barcode rank',
 			'Cell Ranger EmptyDrops call (dashed line) against the UMI-rank curve. '
 			'A clean library shows the call near the knee. Diagnostic only --- '
-			'cellqc does not re-call cells.'),
+			'CellQC does not re-call cells.'),
 		('ambient', f"Ambient RNA ({data['ambient_method']})",
 			'Estimated contamination fraction. This correction WAS applied to the counts.'),
 		('violin_before', 'QC metrics before filtering',
@@ -184,7 +184,7 @@ def main():
 			})
 
 	rendered = template.render(
-		title=tex_escape(f'cellqc QC report'),
+		title=tex_escape('CellQC QC report'),
 		date=datetime.date.today().isoformat(),
 		version=tex_escape(__version__),
 		seed=data['seed'],

@@ -1,5 +1,8 @@
 # Unreleased
 
+- Both reports call the tool **CellQC** — the HTML `<title>`, both report headings, the version lines and
+  the prose that names it. The package, the command and the import stay lowercase `cellqc`; this is the
+  product name as it appears to a reader, nothing else.
 - The nuclear-fraction scatter (`nuclear_fraction/{sample}_nf_umi.{pdf,png}`) colours each cell by its
   mitochondrial percentage, which separates the two readings of the same corner of the plot: low depth
   with a high nuclear fraction is a damaged cell when mitochondrial content is high and a free nucleus or

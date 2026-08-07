@@ -10,7 +10,7 @@ read it before changing the workflow.
 Environment: `envs/cellqc.yaml` plus one GitHub build (DoubletFinder is not on conda).
 
 ```bash
-source "$(conda info --base)/etc/profile.d/conda.sh" && conda activate cellqc_v0.2.0
+source "$(conda info --base)/etc/profile.d/conda.sh" && conda activate cellqc_v0.3.1
 ```
 
 ### Hard-won gotchas — do not rediscover these

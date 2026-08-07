@@ -62,7 +62,7 @@ def figure_sections(data):
 	spec = [
 		('barcoderank', 'Barcode rank',
 			'Cell Ranger EmptyDrops call (dashed) against the UMI-rank curve. '
-			'Diagnostic only — cellqc does not re-call cells.'),
+			'Diagnostic only — CellQC does not re-call cells.'),
 		('ambient', f"Ambient RNA — {data['ambient_method']} (applied)",
 			'Estimated contamination fraction. This correction modified the counts.'),
 		('violin_before', 'QC metrics before filtering',
