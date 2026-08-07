@@ -256,6 +256,13 @@ the axis means what it says), y = nuclear fraction, one point per called cell. R
 inside a vector PDF. This is the DropletQC diagnostic view: damaged cells appear as high-NF/low-UMI, empty
 droplets as low-NF/low-UMI.
 
+Points are coloured by the mitochondrial percentage of the same (pre-correction) matrix when the reference
+carries `MT-`/`mt-` genes, which is what tells those two corners apart directly rather than by position
+alone: high-NF/low-UMI with high mitochondrial content is a damaged cell, the same point with low
+mitochondrial content is a free nucleus or an empty drop. The scale is capped at the 99th percentile so a
+few near-100% cells cannot flatten it, with the clipping shown as a colour-bar arrow; a reference with no
+mitochondrial genes falls back to the single-colour scatter rather than a colour bar reading 0% throughout.
+
 **Interpretation is descriptive only.** v0.2.0 will *not* use NF to filter cells. DropletQC's
 `identify_empty_drops`/`identify_damaged_cells` rely on a 2D density model whose thresholds are sample- and
 tissue-dependent; applying them automatically across samples without per-sample review would be exactly the

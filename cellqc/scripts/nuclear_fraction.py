@@ -165,6 +165,17 @@ def plot(barcodes, nf):
 
 	Total UMI is taken from filtered_feature_bc_matrix.h5, i.e. the raw Cell
 	Ranger counts before any ambient correction, so the axis means what it says.
+	The mitochondrial percentage colouring the points comes from that same
+	matrix, so it is the pre-correction number -- `raw_pct_counts_mt` in the
+	final `.obs`, not the post-correction `pct_counts_mt` the filter is applied
+	to. Cells with no mitochondrial genes in the reference (a custom or
+	non-standard annotation) get the plain single-colour scatter instead of a
+	colour bar that would read 0% everywhere and imply a measurement.
+
+	The two statistics answer the same question from different sides: a
+	low-depth, high-nuclear-fraction cell that is also high-mitochondrial is a
+	damaged cell, while the same cell with low mitochondrial content is more
+	likely a free nucleus or an empty drop.
 
 	Descriptive only. cellqc does NOT filter on the nuclear fraction: the
 	DropletQC empty-drop/damaged-cell thresholds are sample- and tissue-
@@ -178,19 +189,53 @@ def plot(barcodes, nf):
 	adata.var_names_make_unique()
 	umi = np.asarray(adata.X.sum(axis=1)).ravel()
 	order = pd.Index(adata.obs_names)
+	pct_mt, n_mt_genes = qcutil.mito_percent(adata)
+	pct_mt = pd.Series(pct_mt, index=order).reindex(barcodes).to_numpy()
 	umi = pd.Series(umi, index=order).reindex(barcodes).to_numpy()
 
 	ok = np.isfinite(nf) & (umi > 0)
-	fig, ax = plt.subplots(figsize=(4.6, 4.0))
+	x, y = np.log10(umi[ok]), nf[ok]
+	mt = pct_mt[ok]
+	by_mito = n_mt_genes > 0 and bool(np.isfinite(mt).any())
+	if not by_mito:
+		print(
+			f'[nuclear_fraction] {sampleid}: no gene matched {qcutil.MITO_PREFIXES}, '
+			'plotting the nuclear fraction without the mitochondrial colouring',
+			flush=True,
+			)
+
+	fig, ax = plt.subplots(figsize=(5.4, 4.0) if by_mito else (4.6, 4.0))
 	# Rasterize the dense scatter inside the vector PDF: the ~1e4 points become
 	# a 600 dpi raster layer while axes and labels stay editable text.
-	ax.scatter(
-		np.log10(umi[ok]), nf[ok],
-		s=3, alpha=0.3, linewidths=0, color='#106e78', rasterized=True,
-		)
+	if by_mito:
+		# High-mitochondrial cells are the ones being looked for and are the
+		# minority, so draw them last: in a cloud of ~1e4 semi-transparent points
+		# the plotting order, not the colour map, decides what is visible.
+		# Scale to the 99th percentile so a handful of near-100% cells cannot
+		# flatten the whole colour range; `extend='max'` keeps that clipping
+		# visible on the colour bar rather than silent.
+		draw = np.argsort(np.nan_to_num(mt, nan=-1.0))
+		hi, top = float(np.nanpercentile(mt, 99)), float(np.nanmax(mt))
+		vmax = hi if hi > 0 else (top if top > 0 else 1.0)
+		points = ax.scatter(
+			x[draw], y[draw], c=mt[draw],
+			s=3, alpha=0.5, linewidths=0, cmap='viridis', vmin=0, vmax=vmax,
+			rasterized=True,
+			)
+		cbar = fig.colorbar(points, ax=ax, extend='max' if top > vmax else 'neither')
+		cbar.set_label('% mitochondrial UMI (pre-correction)')
+		cbar.solids.set_alpha(1)
+	else:
+		ax.scatter(
+			x, y,
+			s=3, alpha=0.3, linewidths=0, color='#106e78', rasterized=True,
+			)
 	ax.set_xlabel('log10(total UMI per cell)')
 	ax.set_ylabel('Nuclear fraction (intronic / [intronic + exonic])')
-	ax.set_title(f'{sampleid}\nn={int(ok.sum())} cells, median NF={np.nanmedian(nf[ok]):.3f}', fontsize=9)
+	title = f'{sampleid}\nn={int(ok.sum())} cells, median NF={np.nanmedian(nf[ok]):.3f}'
+	if by_mito:
+		title += f', median mito={np.nanmedian(mt):.1f}%'
+	ax.set_title(title, fontsize=9)
 	ax.set_ylim(0, 1)
 	fig.tight_layout()
 

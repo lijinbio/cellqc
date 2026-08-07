@@ -69,8 +69,9 @@ def figure_sections(data):
 			'Dashed lines mark the applied thresholds.'),
 		('violin_after', 'QC metrics after filtering', ''),
 		('nf', 'Nuclear fraction vs UMI depth',
-			'Intronic / (intronic + exonic) reads per cell. Reported only — '
-			'NOT used for filtering.'),
+			'Intronic / (intronic + exonic) reads per cell, coloured by % mitochondrial '
+			'UMI before ambient correction where the reference has mitochondrial genes. '
+			'Reported only — NOT used for filtering.'),
 		('doubletfinder_pANN', 'DoubletFinder — pANN', ''),
 		('doubletfinder_umap', 'DoubletFinder — calls on UMAP', ''),
 		('scdblfinder_score', 'scDblFinder — score',

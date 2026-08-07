@@ -1,5 +1,16 @@
 # Unreleased
 
+- The nuclear-fraction scatter (`nuclear_fraction/{sample}_nf_umi.{pdf,png}`) colours each cell by its
+  mitochondrial percentage, which separates the two readings of the same corner of the plot: low depth
+  with a high nuclear fraction is a damaged cell when mitochondrial content is high and a free nucleus or
+  empty drop when it is not. The percentage comes from the same `filtered_feature_bc_matrix.h5` the plot
+  already reads for total UMI, so it is the pre-ambient-correction number (`raw_pct_counts_mt` in the
+  final `.obs`), and the colour scale is capped at the 99th percentile with an `extend='max'` arrow rather
+  than letting a few near-100% cells flatten it. A reference with no gene matching `MT-`/`mt-` keeps the
+  previous single-colour scatter and says so in the log, instead of a colour bar reading 0% everywhere.
+  The gene pattern now lives once in `qcutil.MITO_PREFIXES`/`qcutil.mito_percent()`, shared with
+  `filterbycount`, so the number a cell is filtered on and the number colouring it cannot drift apart.
+
 - `.obs` of every matrix from `filterbycount` onwards — including `result/{sample}.h5ad` and
   `result/{sample}_obs.txt.gz` — gains `raw_total_counts`, `raw_n_genes_by_counts` and
   `raw_pct_counts_mt`: the same three QC metrics computed on the uncorrected Cell Ranger counts. The

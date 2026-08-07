@@ -59,6 +59,34 @@ def savefig(fig, stem, png=True):
 	return written
 
 
+# --- Mitochondrial content ---------------------------------------------------
+# One definition, used by `filterbycount` (via scanpy's qc_vars=['mt']) and by
+# the nuclear-fraction scatter, so the number a cell is filtered on and the
+# number colouring that cell in the plot cannot drift apart.
+
+MITO_PREFIXES = ('MT-', 'mt-')
+
+
+def mito_percent(adata):
+	"""Percent of a cell's UMI in mitochondrial genes.
+
+	Same gene pattern and same formula as scanpy's `pct_counts_mt`, computed
+	directly so a caller that only needs this one metric does not have to run
+	`calculate_qc_metrics` over the whole matrix. Returns `(pct, n_mito_genes)`;
+	`pct` is NaN for a barcode with no counts, and all-zero when nothing matched
+	the pattern -- `n_mito_genes` is what tells those two cases apart.
+	"""
+	mt = np.fromiter(
+		(str(n).startswith(MITO_PREFIXES) for n in adata.var_names),
+		dtype=bool, count=adata.n_vars,
+		)
+	total = np.asarray(adata.X.sum(axis=1)).ravel().astype(float)
+	mt_counts = np.asarray(adata.X[:, mt].sum(axis=1)).ravel().astype(float)
+	with np.errstate(invalid='ignore', divide='ignore'):
+		pct = np.where(total > 0, 100.0 * mt_counts / total, np.nan)
+	return pct, int(mt.sum())
+
+
 # --- Matrix annotations ------------------------------------------------------
 
 OBS_INDEX_NAME = 'barcode'

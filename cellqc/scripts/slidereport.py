@@ -131,8 +131,11 @@ def figure_entries(data, sid):
 		('violin_after', 'QC metrics after filtering',
 			'Same axes as the previous slide, after removing cells failing any threshold.'),
 		('nf', 'Nuclear fraction vs UMI depth',
-			'Intronic / (intronic + exonic) reads per cell against sequencing depth. '
-			'High nuclear fraction at low depth suggests damaged cells or free nuclei. '
+			'Intronic / (intronic + exonic) reads per cell against sequencing depth, '
+			'coloured by \\% mitochondrial UMI before ambient correction where the '
+			'reference has mitochondrial genes. High nuclear fraction at low depth '
+			'suggests damaged cells or free nuclei; high mitochondrial content with it '
+			'points to damaged cells rather than free nuclei. '
 			'Reported only --- NOT used for filtering.'),
 		('doubletfinder_pANN', 'DoubletFinder: pANN',
 			'Proportion of artificial nearest neighbours, by call.'),

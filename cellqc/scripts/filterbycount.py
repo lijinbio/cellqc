@@ -40,7 +40,7 @@ sampleid = snakemake.params['sampleid']
 
 qcutil.set_seed(snakemake.params['seed'])
 
-MITO_PREFIXES = ('MT-', 'mt-')
+MITO_PREFIXES = qcutil.MITO_PREFIXES
 
 # The metrics recomputed on the uncorrected counts, and the prefix they get.
 # `raw_` means *before ambient correction* -- the source is the Cell Ranger
