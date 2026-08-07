@@ -1,4 +1,7 @@
-# Unreleased
+# v0.3.2 - Aug 7, 2026
+
+Additive release. Every cell that came out of v0.3.1 still comes out, with the same counts: the new `.obs`
+columns are recorded, not filtered on, and the rest is what the reports show and say.
 
 - Both reports call the tool **CellQC** — the HTML `<title>`, both report headings, the version lines and
   the prose that names it. The package, the command and the import stay lowercase `cellqc`; this is the
@@ -13,7 +16,6 @@
   previous single-colour scatter and says so in the log, instead of a colour bar reading 0% everywhere.
   The gene pattern now lives once in `qcutil.MITO_PREFIXES`/`qcutil.mito_percent()`, shared with
   `filterbycount`, so the number a cell is filtered on and the number colouring it cannot drift apart.
-
 - `.obs` of every matrix from `filterbycount` onwards — including `result/{sample}.h5ad` and
   `result/{sample}_obs.txt.gz` — gains `raw_total_counts`, `raw_n_genes_by_counts` and
   `raw_pct_counts_mt`: the same three QC metrics computed on the uncorrected Cell Ranger counts. The

@@ -1,4 +1,4 @@
-# cellqc v0.3.1 runtime environment.
+# cellqc v0.3.2 runtime environment.
 # Everything here comes from conda-forge/bioconda. The ONLY component that is
 # not conda-installable is DoubletFinder (GitHub-only); see README.md.
 #
