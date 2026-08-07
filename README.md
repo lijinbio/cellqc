@@ -1,6 +1,6 @@
-# cellqc: standardized quality control pipeline of single-cell RNA-Seq data
+# CellQC: standardized quality control pipeline of single-cell RNA-Seq data
 
-Cellqc standardizes the quality control of single-cell RNA-Seq (scRNA) data, turning Cell Ranger output
+CellQC standardizes the quality control of single-cell RNA-Seq (scRNA) data, turning Cell Ranger output
 into clean feature count matrices. It is implemented in Snakemake for reproducibility and scalability.
 
 The pipeline starts from the Cell Ranger filtered matrix and, per sample:
@@ -16,7 +16,7 @@ The pipeline starts from the Cell Ranger filtered matrix and, per sample:
 
 Output is `.h5ad` matrices, a self-contained HTML report, and a presentation-ready PDF slide deck.
 
-Cell calling is Cell Ranger EmptyDrops; cellqc does not re-call cells. Cell-type annotation is out of
+Cell calling is Cell Ranger EmptyDrops; CellQC does not re-call cells. Cell-type annotation is out of
 scope as of v0.2.0 — annotate downstream.
 
 ![workflow](https://raw.githubusercontent.com/lijinbio/cellqc/master/docs/workflow.png)
