@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version
 
-The tree is **v0.3.2**. `docs/design.md` carries the design rationale and the validation results —
+The tree is **v0.3.3**. `docs/design.md` carries the design rationale and the validation results —
 read it before changing the workflow.
 
 Environment: `envs/cellqc.yaml` plus one GitHub build (DoubletFinder is not on conda).
@@ -36,6 +36,16 @@ source "$(conda info --base)/etc/profile.d/conda.sh" && conda activate cellqc_v0
   ended in state `PREEMPTED`. Never `rm -rf` the outdir to "start clean": that discards every completed
   stage and makes the next preemption cost the whole run again.
 
+### Gene sets are reference-dependent (v0.3.3)
+
+`MT-`/`mt-` matches nothing in Ensembl Mmul_10 (macaque): it names the 13 protein-coding mtDNA genes bare
+(`ND1`, `COX1`, `CYTB`). Before v0.3.3 such a run produced `pct_counts_mt == 0` for every cell, a mito
+threshold that excluded nothing, and no error. Sets are now config (`geneset`), matched by case-insensitive
+`patterns` with exact `symbols` as a **fallback used only when no pattern matched anything** — never a
+union, because bare `COX1` is also a legacy alias of the nuclear gene PTGS1. `ribo` and `hb` are computed,
+plotted and recorded but **never filtered on**. Matching sees past `var_names_make_unique()` (`RPSA` →
+`RPSA-1`), and `exclude` keeps `RPS6K*`/`RPS19BP1` out of `ribo` and `HBEGF`/`HBP1`/`HBS1L` out of `hb`.
+
 ### Validation status (reference sample GSE188280, CR 10.0.0, 13,559 cells)
 
 - Nuclear fraction vs DropletQC: Pearson r = 1.000000, max |Δ| = 0.00057. Gate passed.
@@ -43,6 +53,15 @@ source "$(conda info --base)/etc/profile.d/conda.sh" && conda activate cellqc_v0
   unseeded SoupX rounding, confirmed by a seed-repeat experiment.
 - DoubletFinder 1,011 (9.00%) vs scDblFinder 1,153 (10.26%), Cohen's κ = 0.759.
 - Reproducibility proven: same seed → identical matrix; seed 42 vs 7 → 1,329 counts of 91.3M differ.
+
+### Validation status (macaque, `3v4_MK_39701_papillomacular`, Mmul_10, GEM-X 3' v4, 12,386 cells)
+
+- `geneset.mt` matched 13/13 mtDNA genes by **symbol**; ribo 82 and hb 5 by pattern. The 10% mito
+  threshold removed **235 cells** — under v0.3.2's `MT-`/`mt-` it would have removed 0.
+- End-to-end: 12,386 → 12,081 (filter) → 11,477 (doublets), `frac_retained` 0.927. SoupX rho removed 5.40%
+  of counts; median NF 0.754 over 265M BAM records.
+- `doublet.nreaction: 2` (GEM-X 3' v4) → expected doublet fraction 0.050, nExp 604. DoubletFinder 604
+  (5.00%), scDblFinder 896 (7.42%).
 
 ## What this is
 
@@ -91,7 +110,7 @@ all (bioconda forbids network access at install time; the fix would be a separat
 
 **Two layers.** `cellqc/cli.py` is a thin click CLI that creates the outdir, `chdir`s into it, and shells out to `snakemake --snakefile cellqc/Snakefile --config samplefile=... outdir=... configfile=... nowtimestr=...`. All real logic is in the workflow. Note the CLI passes the config file *both* via `--configfile` and as a `configfile=` config key (the latter so `config.smk` can resolve paths relative to it).
 
-**Config resolution** happens entirely in `cellqc/rules/config.smk`: it merges a hard-coded `default_params` dict under any user-supplied YAML (per-section, per-key), validates against `schemas/config.schema.yaml`, reads the sample TSV into a module-level `samples` DataFrame indexed by `sample`, and dumps the effective config to `config_<timestamp>.yaml` in the outdir. **The defaults in `config.smk` and the documented defaults in README.md are duplicated — change both together.**
+**Config resolution** happens entirely in `cellqc/rules/config.smk`: it merges a hard-coded `default_params` dict under any user-supplied YAML (per-section, per-key), validates against `schemas/config.schema.yaml`, reads the sample TSV into a module-level `samples` DataFrame indexed by `sample`, and dumps the effective config to `config_<timestamp>.yaml` in the outdir. **The defaults in `config.smk` and the documented defaults in README.md are duplicated — change both together.** The QC gene sets (`geneset`) are duplicated a third time, in `cellqc/qcutil.py`'s `GENE_SETS`: `.smk` files cannot import the package, and the effective definition has to reach `config_<timestamp>.yaml`, so **`config.smk`, `qcutil.GENE_SETS` and README.md all change together**. `tests/dryrun.sh` compares the dumped `config_<timestamp>.yaml` against `qcutil.GENE_SETS` and fails if they disagree, so run it after touching either.
 
 **Relative-path convention:** `cellranger` paths in the sample file are resolved relative to the *sample file's* directory (`sampledir`, used by `get_cellranger`/`get_rawh5` in `common.smk`); (v0.1.0 also resolved `scpred.reference` against the *config file's* directory; that section is gone.)
 
@@ -156,6 +175,13 @@ change them together.
   `cellqc/` must be covered by `[tool.setuptools.package-data]` or they will be missing from the wheel —
   the workflow is data, not modules, so Snakemake reads it off disk at runtime. `MANIFEST.in` only adds the
   extra files an sdist needs (`README.md`, `CHANGELOG.md`, `LICENSE`, `envs/`).
-- Version lives only in `cellqc/__init__.py`; `pyproject.toml` reads it via `dynamic = ["version"]`. Bump it
-  together with a `CHANGELOG.md` entry.
+- Version lives only in `pyproject.toml` (`[project] version =`), read back by `cellqc/__init__.py` via
+  `importlib.metadata.version('cellqc')` so `from cellqc import __version__` keeps working for the CLI's
+  `--version` and both reports. Bump it together with a `CHANGELOG.md` entry — **and re-run
+  `pip install -e .`**: `importlib.metadata` reads what pip wrote, so in an editable install the number is
+  frozen at install time and the reports would otherwise stamp the previous release. (Before v0.3.3 the
+  version lived in `__init__.py` with `dynamic = ["version"]`, which needed no reinstall.)
+- The author is `pyproject.toml`'s `authors` alone. `__author__`/`__email__` were cookiecutter leftovers
+  with no consumers and no PEP behind them (`importlib.metadata.metadata()` is the supported accessor);
+  they were removed in v0.3.3. Do not reintroduce metadata dunders in `cellqc/__init__.py`.
 - Indentation is inconsistent by design of the original author and enforced by vim modelines: `rules/*.smk` use 2 spaces; `cellqc.py`, `config.smk`, and `scripts/*.py` use **tabs** with `tabstop=2`. Match the file you are editing.

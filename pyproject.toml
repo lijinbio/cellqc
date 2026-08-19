@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cellqc"
+version = "0.3.3"
 description = "Cellqc standardizes the quality control of single-cell RNA-Seq (scRNA) data to render clean feature count matrices."
 readme = "README.md"
 # The runtime environment is Python 3.12 (envs/cellqc.yaml); 3.9 is the oldest
@@ -30,19 +31,12 @@ dependencies = [
 	"PyYAML",
 ]
 
-# Single-sourced from cellqc/__init__.py so the package, the CLI's --version and
-# the CHANGELOG cannot disagree.
-dynamic = ["version"]
-
 [project.urls]
 Homepage = "https://github.com/lijinbio/cellqc"
 Changelog = "https://github.com/lijinbio/cellqc/blob/master/CHANGELOG.md"
 
 [project.scripts]
 cellqc = "cellqc.cli:main"
-
-[tool.setuptools.dynamic]
-version = { attr = "cellqc.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["cellqc*"]

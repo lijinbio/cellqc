@@ -257,7 +257,8 @@ inside a vector PDF. This is the DropletQC diagnostic view: damaged cells appear
 droplets as low-NF/low-UMI.
 
 Points are coloured by the mitochondrial percentage of the same (pre-correction) matrix when the reference
-carries `MT-`/`mt-` genes, which is what tells those two corners apart directly rather than by position
+has mitochondrial genes (`geneset.mt`; `MT-`/`mt-` before v0.3.3 made it configurable — see §9), which is
+what tells those two corners apart directly rather than by position
 alone: high-NF/low-UMI with high mitochondrial content is a damaged cell, the same point with low
 mitochondrial content is a free nucleus or an empty drop. The scale is capped at the 99th percentile so a
 few near-100% cells cannot flatten it, with the clipping shown as a colour-bar arrow; a reference with no
@@ -416,3 +417,49 @@ Until it is run, "scDblFinder is better" and "DoubletFinder is better" are both 
    pipeline is shorter.~~ **Resolved after v0.2.0:** the split was not useful. The final matrix is what a
    user wants and it now *is* `result/{s}.h5ad` (postproc's output); the pre-integration matrix moved to
    `filterdoublet/{s}.h5ad`, where every other stage's output already lives. `postproc/` is gone.
+
+## 9. QC gene sets — added in v0.3.3
+
+The v0.2.0–v0.3.2 pipeline hard-coded one gene set, `('MT-', 'mt-')` as a prefix pair, on the assumption
+that a mitochondrial gene is one whose symbol names the contig. That assumption is a property of the
+*reference*, not of biology, and it fails silently. Ensembl Mmul_10 (macaque) names the 13 protein-coding
+mtDNA genes bare — `ND1`, `COX1`, `CYTB` — so a macaque run got `pct_counts_mt == 0` for every cell, a
+mito threshold that excluded nothing, and no error: the metric was still computed, still plotted, still
+written to `.obs`, and every number in it was wrong in the direction that removes no cells. The v0.3.2
+warning in the log was the only sign.
+
+**Decision: gene sets are configuration (`geneset`), matched by pattern with a symbol fallback.**
+
+- `patterns` are case-insensitive regexes. Case-insensitivity is what collapses human `MT-ND1` and mouse
+  `mt-Nd1` into one pattern instead of a per-species table that has to be extended per organism.
+- `symbols` are exact names tried **only when no pattern matched anything**. Deliberately a fallback and
+  not a union: `COX1` is a legacy alias of the nuclear gene *PTGS1*, and `ND1`/`ND2` collide with other
+  nomenclatures, so a bare symbol may only be claimed in a reference that has no prefixed mitochondrial
+  genes at all. In GRCh38 the pattern matches and the fallback never runs — which is what makes the change
+  cell-for-cell identical on human and mouse cohorts.
+- `exclude` removes near-misses. `^RP[SL]\d` is the conventional ribosomal pattern and it is wrong on
+  `RPS6KA1`–`RPS6KA6`, `RPS6KB1`/`RPS6KB2`, `RPS6KC1`, `RPS6KL1` (kinases) and `RPS19BP1` (a binding
+  protein). Hemoglobin is written as full matches rather than an `^HB` prefix for the same reason: `HBEGF`,
+  `HBP1` and `HBS1L` are not globins.
+- Which route matched is recorded per sample (`<set>_matched_by` ∈ {`pattern`, `symbol`, `none`}) beside
+  `n_<set>_genes`. The failure this replaces was invisible; recording *how* the set was resolved is what
+  makes it visible without reading the log.
+
+**Ribosomal and hemoglobin are computed and never filtered on.** They belong in QC because they name what
+kind of bad a cell is — ribosomal-dominated transcriptomes in dying cells, hemoglobin-dominated ones from
+red-blood-cell carry-over — but a defensible threshold for either is tissue-dependent (retina against any
+blood-perfused tissue differs by an order of magnitude). This is the same position §2.3 takes on the
+nuclear fraction: carried in `.obs`, plotted, and left to a human. Their violin panels are drawn with no
+threshold line and labelled *(not filtered)*, so the figure cannot be read as showing five criteria.
+
+Verified on the macaque retina reference (Mmul_10, 26,530 features): 13/13 mtDNA genes matched by symbol,
+82 ribosomal genes by pattern (with all 10 `RPS6K*` and `RPS19BP1` excluded), 5 globins (`HBA`, `HBA1`,
+`HBE1`, `HBM`, `HBQ1`, with `HBEGF`/`HBP1`/`HBS1L` excluded). Percentages agree with scanpy's
+`calculate_qc_metrics` to < 5e-6 percentage points. Matching also sees past `var_names_make_unique()`:
+Mmul_10 carries `RPSA` twice, and an anchored `^RPSA$` would otherwise miss the renamed `RPSA-1`.
+
+End to end on that sample (12,386 called cells, GEM-X 3' v4): 12,386 → 12,081 after the count filter →
+11,477 after doublets. **235 of the 305 filtered cells failed the 10% mitochondrial threshold** — under
+v0.3.2 that criterion removed nothing at all on this reference, because `pct_counts_mt` was 0 everywhere.
+That is the size of the bug this section fixes, and it is invisible without the `matched_by` column: the
+v0.3.2 run produced a complete report with a mitochondrial violin, a threshold line, and no error.

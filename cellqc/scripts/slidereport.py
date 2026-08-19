@@ -127,7 +127,9 @@ def figure_entries(data, sid):
 		('ambient', f"Ambient RNA ({data['ambient_method']})",
 			'Estimated contamination fraction. This correction WAS applied to the counts.'),
 		('violin_before', 'QC metrics before filtering',
-			'Dashed lines are the applied thresholds. Counts and genes on a log scale.'),
+			'Dashed lines are the applied thresholds. Counts and genes on a log scale. '
+			'Panels without a dashed line (ribosomal, hemoglobin) are recorded only --- '
+			'no cell is excluded on them.'),
 		('violin_after', 'QC metrics after filtering',
 			'Same axes as the previous slide, after removing cells failing any threshold.'),
 		('nf', 'Nuclear fraction vs UMI depth',

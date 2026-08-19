@@ -15,6 +15,7 @@ rule filterbycount:
     mincount=config["filterbycount"]["mincount"],
     minfeature=config["filterbycount"]["minfeature"],
     mito=config["filterbycount"]["mito"],
+    geneset=config["geneset"],
     sampleid="{sample}",
     seed=config["seed"],
   script:

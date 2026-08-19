@@ -66,7 +66,9 @@ def figure_sections(data):
 		('ambient', f"Ambient RNA — {data['ambient_method']} (applied)",
 			'Estimated contamination fraction. This correction modified the counts.'),
 		('violin_before', 'QC metrics before filtering',
-			'Dashed lines mark the applied thresholds.'),
+			'Dashed lines mark the applied thresholds. The gene-set panels without a '
+			'dashed line — ribosomal, hemoglobin — are recorded and plotted only; no '
+			'cell is excluded on them.'),
 		('violin_after', 'QC metrics after filtering', ''),
 		('nf', 'Nuclear fraction vs UMI depth',
 			'Intronic / (intronic + exonic) reads per cell, coloured by % mitochondrial '

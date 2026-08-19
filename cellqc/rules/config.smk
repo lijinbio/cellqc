@@ -46,6 +46,36 @@ default_params={
 		'minfeature': 300,
 		'mito': 10,
 	},
+	# QC gene sets. Kept here rather than in cellqc/qcutil.py's GENE_SETS so the
+	# effective definition lands in config_<timestamp>.yaml with everything else:
+	# which genes counted as mitochondrial is not reconstructable from the matrix
+	# afterwards, and a run whose reference names them differently is exactly the
+	# run whose numbers a reader will question. The two must stay in step -- see
+	# the note in qcutil.py for what `patterns`, `symbols` and `exclude` mean.
+	# Only 'mt' is filtered on (filterbycount.mito); the rest are recorded.
+	'geneset': {
+		'mt': {
+			'label': '% mitochondrial',
+			'patterns': [r'^MT-'],
+			'symbols': [
+				'ND1', 'ND2', 'ND3', 'ND4', 'ND4L', 'ND5', 'ND6',
+				'COX1', 'COX2', 'COX3', 'ATP6', 'ATP8', 'CYTB',
+			],
+			'exclude': [],
+		},
+		'ribo': {
+			'label': '% ribosomal',
+			'patterns': [r'^RP[SL]\d', r'^RPLP\d', r'^RPSA$'],
+			'symbols': [],
+			'exclude': [r'^RPS6K', r'^RPS19BP'],
+		},
+		'hb': {
+			'label': '% hemoglobin',
+			'patterns': [r'^HB[ABDEGMQZ]([0-9][AB]?)?$', r'^HB[AB]-[A-Z0-9]+$'],
+			'symbols': [],
+			'exclude': [],
+		},
+	},
 	'doublet': {
 		'run': ['doubletfinder', 'scdblfinder'],
 		'decider': 'doubletfinder',
@@ -54,6 +84,7 @@ default_params={
 		'pK': 0.01,
 		'rate': 0.1,
 		'capacity': 13000,
+		'nreaction': 1,
 	},
 }
 
@@ -106,6 +137,17 @@ for key, paramdict in default_params.items():
 			if subkey not in config[key]:
 				config[key][subkey]=value
 
+# The generic merge above is one level deep, which is the rule for `geneset`
+# too: naming a set in the config replaces that set's definition outright rather
+# than merging key by key. A half-merged set is the worse behaviour -- someone
+# who writes their own `patterns` for a reference and inherits the default
+# `symbols` gets the macaque fallback silently applied to it.
+if config['geneset'].get('mt') is None:
+	raise ValueError(
+		"config section 'geneset' must define 'mt': filterbycount.mito is a threshold on "
+		"pct_counts_mt, so the mitochondrial gene set cannot be removed."
+		)
+
 # The deciding caller must actually run, otherwise its metadata never exists.
 if config['doublet']['decider'] not in config['doublet']['run']:
 	raise ValueError(
@@ -123,14 +165,21 @@ sampledir=str(Path(config['samples']).parent)
 
 validate(config, schema='../schemas/config.schema.yaml')
 samples=pd.read_table(config['samples']).set_index('sample', drop=False)
+
+# `nreaction` is per sample because a cohort can mix chemistries, but usually
+# does not, so doublet.nreaction supplies the value for every sample that does
+# not name its own. Filled before validation so a partly-filled column is a
+# defaulted column rather than a type error.
+if 'nreaction' not in samples.columns:
+	samples['nreaction']=config['doublet']['nreaction']
+else:
+	samples['nreaction']=samples['nreaction'].fillna(config['doublet']['nreaction']).astype(int)
+
 validate(samples, '../schemas/samples.schema.yaml')
 
 if samples.index.duplicated().any():
 	dup=sorted(set(samples.index[samples.index.duplicated()]))
 	raise ValueError(f"Duplicate sample IDs in {config['samples']}: {dup}")
-
-if 'nreaction' not in samples.columns:
-	samples['nreaction']=1
 
 # The nuclear fraction needs the Cell Ranger BAM. Rather than a skip flag, detect
 # it per sample at DAG-construction time: present -> the step runs, absent -> it

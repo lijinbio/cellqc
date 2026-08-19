@@ -1,3 +1,48 @@
+# v0.3.3 - Aug 18, 2026
+
+Reference-agnostic QC metrics. Additive for human and mouse: those runs are unchanged cell for cell,
+`pct_counts_mt` being computed over the same genes as in v0.3.2 (two names change, listed at the end).
+Macaque — and any other reference that names its mitochondrial genes without a contig prefix — now gets a
+real mitochondrial percentage instead of a column of zeros.
+
+- **QC gene sets are configuration** (`geneset` in the YAML), not a hard-coded pattern. A set is matched
+  by case-insensitive `patterns`, with exact `symbols` as a fallback used only when no pattern matched
+  anything, minus anything in `exclude`. Each set becomes a `pct_counts_<set>` column in `.obs`, a violin
+  panel, and `n_<set>_genes` / `<set>_matched_by` / `median_pct_counts_<set>` in the filter statistics and
+  `result/metrics.csv`. Adding a set is a config key, not a code change.
+- **Macaque support.** `MT-`/`mt-` matches nothing in Ensembl Mmul_10, which names the 13 protein-coding
+  mtDNA genes bare: `ND1`, `ND2`, `ND3`, `ND4`, `ND4L`, `ND5`, `ND6`, `COX1`, `COX2`, `COX3`, `ATP6`,
+  `ATP8`, `CYTB`. Those are the default `geneset.mt.symbols`, tried only when the prefix pattern found
+  nothing — a bare `COX1` is also a legacy alias of the nuclear gene *PTGS1*, so it is claimed only in a
+  reference with no prefixed mitochondrial genes at all. Verified on the macaque retina reference: 13/13
+  matched (`matched_by: symbol`), while GRCh38 and GRCm39 still match by pattern and never reach the
+  fallback. Before this release such a run filtered on a `pct_counts_mt` that was 0 for every cell.
+- **Ribosomal and hemoglobin percentages** are computed, plotted and recorded for every sample:
+  `pct_counts_ribo` (`^RP[SL]\d`, `^RPLP\d`, `^RPSA$`, less `^RPS6K` and `^RPS19BP` — kinases and a
+  binding protein, not ribosomal proteins) and `pct_counts_hb` (the globin cluster, written as full
+  matches so `HBEGF`, `HBP1` and `HBS1L` are not swallowed by a bare `^HB`). **Neither is filtered on.** A
+  defensible cut-off for either is tissue-dependent, and cellqc does not exclude cells on a number nobody
+  has looked at; their violin panels carry no threshold line and are labelled *(not filtered)*.
+- The QC violin figure grows a panel per gene set (five by default, was three) and widens with it instead
+  of squeezing the existing panels. Both reports say in the figure caption that the panels without a
+  dashed line remove no cells.
+- Gene-set matching sees past `var_names_make_unique()`: a reference carrying `RPSA` twice becomes
+  `RPSA` + `RPSA-1`, and an anchored pattern would otherwise count only the first copy.
+- **`doublet.nreaction`** sets the per-sample default for every sample whose row in the sample file does
+  not give its own; the column still wins where present. A cohort on one chemistry states it once — 10x
+  GEM-X 3' v4 halves the multiplet rate of 3' v3.1 at the same yield, which `nreaction: 2` expresses
+  against the unchanged `rate`/`capacity` line.
+- **Packaging metadata is `pyproject.toml`'s alone.** The version moved out of `cellqc/__init__.py` to a
+  static `[project] version`, and `__init__.py` reads it back with `importlib.metadata` so
+  `cellqc.__version__`, `cellqc --version` and the reports are unchanged. `__author__`/`__email__` are
+  gone — nothing read them, no PEP defines them, and `pyproject.toml`'s `authors` already carried the
+  same values. Note for developers: a version bump now needs a `pip install -e .` before the reports show
+  it, because `importlib.metadata` reads installed metadata rather than the working tree.
+- `filter_n_mito_genes` in `result/metrics.csv` is now `filter_n_mt_genes`, one instance of the generic
+  `n_<set>_genes` naming. `qcutil.MITO_PREFIXES` is replaced by `qcutil.GENE_SETS` and
+  `qcutil.gene_set_mask()`; `qcutil.mito_percent()` returns `(pct, n_genes, matched_by)` rather than
+  `(pct, n_genes)`.
+
 # v0.3.2 - Aug 7, 2026
 
 Additive release. Every cell that came out of v0.3.1 still comes out, with the same counts: the new `.obs`

@@ -8,6 +8,7 @@ breaks sibling imports.
 
 import os
 import random
+import re
 
 import numpy as np
 
@@ -59,32 +60,138 @@ def savefig(fig, stem, png=True):
 	return written
 
 
-# --- Mitochondrial content ---------------------------------------------------
-# One definition, used by `filterbycount` (via scanpy's qc_vars=['mt']) and by
-# the nuclear-fraction scatter, so the number a cell is filtered on and the
-# number colouring that cell in the plot cannot drift apart.
+# --- QC gene sets ------------------------------------------------------------
+# One definition of every QC gene set, used by `filterbycount` (via scanpy's
+# `qc_vars`) and by the nuclear-fraction scatter, so the number a cell is
+# filtered on and the number colouring that cell in the plot cannot drift apart.
+#
+# Which genes belong to a set is a property of the *reference*, not of the
+# pipeline, so the sets are config (`geneset` in the YAML) and these are only
+# the defaults. A set is matched in two steps:
+#
+#   patterns  case-insensitive regexes, the primary definition. Case-insensitive
+#             is what makes one pattern cover human `MT-ND1`, mouse `mt-Nd1` and
+#             macaque alike, instead of a per-species list.
+#   symbols   exact names, case-insensitive, tried ONLY when no pattern matched
+#             anything. This is the escape hatch for a reference whose
+#             mitochondrial genes carry no contig prefix at all: Ensembl Mmul_10
+#             (macaque) names them bare -- `ND1`, `COX1`, `CYTB`. Making it a
+#             fallback rather than a union is deliberate: `COX1` is also a legacy
+#             alias of the nuclear gene PTGS1, so a bare symbol is only safe to
+#             claim in a reference that has no prefixed mitochondrial genes. In
+#             GRCh38 the pattern matches first and the fallback never runs.
+#
+# `exclude` removes matches at both steps, for the genes whose names start like
+# a set member but are not one: RPS6KA1-6/RPS6KB1-2/RPS6KC1/RPS6KL1 are kinases
+# and RPS19BP1 is a binding protein, none of them ribosomal proteins. The
+# hemoglobin patterns are written as full matches for the same reason -- a bare
+# `^HB` prefix would swallow HBEGF, HBP1 and HBS1L.
+#
+# Only `mt` is filtered on (`filterbycount.mito`). `ribo` and `hb` are computed,
+# plotted and written to `.obs`, and nothing is excluded on them: a plausible
+# threshold for either is tissue-dependent (retina and blood-contaminated tissue
+# disagree by an order of magnitude), and cellqc does not auto-filter on a
+# number the user has not looked at.
 
-MITO_PREFIXES = ('MT-', 'mt-')
+GENE_SETS = {
+	'mt': {
+		'label': '% mitochondrial',
+		'patterns': [r'^MT-'],
+		'symbols': [
+			'ND1', 'ND2', 'ND3', 'ND4', 'ND4L', 'ND5', 'ND6',
+			'COX1', 'COX2', 'COX3', 'ATP6', 'ATP8', 'CYTB',
+			],
+		'exclude': [],
+		},
+	'ribo': {
+		'label': '% ribosomal',
+		'patterns': [r'^RP[SL]\d', r'^RPLP\d', r'^RPSA$'],
+		'symbols': [],
+		'exclude': [r'^RPS6K', r'^RPS19BP'],
+		},
+	'hb': {
+		'label': '% hemoglobin',
+		# HBA1/HBA2/HBB/HBD/HBE1/HBG1/HBG2/HBM/HBQ1/HBZ and macaque's bare HBA,
+		# plus the hyphenated mouse cluster (Hba-a1, Hbb-bs, Hbb-bh1, Hba-x).
+		'patterns': [r'^HB[ABDEGMQZ]([0-9][AB]?)?$', r'^HB[AB]-[A-Z0-9]+$'],
+		'symbols': [],
+		'exclude': [],
+		},
+	}
+
+# The mitochondrial set is the one the rest of the pipeline references by name:
+# it is the only set with a threshold, and it colours the nuclear-fraction
+# scatter.
+MITO_SET = 'mt'
 
 
-def mito_percent(adata):
-	"""Percent of a cell's UMI in mitochondrial genes.
+def gene_set_label(name, spec=None):
+	"""Axis label for a set: its configured `label`, else `% <name>`."""
+	if spec and spec.get('label'):
+		return str(spec['label'])
+	return f'% {name}'
 
-	Same gene pattern and same formula as scanpy's `pct_counts_mt`, computed
-	directly so a caller that only needs this one metric does not have to run
-	`calculate_qc_metrics` over the whole matrix. Returns `(pct, n_mito_genes)`;
-	`pct` is NaN for a barcode with no counts, and all-zero when nothing matched
-	the pattern -- `n_mito_genes` is what tells those two cases apart.
+
+# `var_names_make_unique()` renames the second copy of a duplicated symbol to
+# `NAME-1`. Every matrix cellqc reads has been through it, so a set defined with
+# an anchored pattern has to see past the suffix: without this, a reference that
+# carries `RPSA` twice counts one of them and the ribosomal percentage is quietly
+# short by a gene. Both the name and its de-suffixed form are tried.
+DEDUP_SUFFIX = re.compile(r'-\d+$')
+
+
+def gene_set_mask(var_names, spec):
+	"""Which features belong to a gene set, and how they were recognised.
+
+	Returns `(mask, matched_by)` with `matched_by` one of `pattern`, `symbol` or
+	`none`. `matched_by` is reported and written to the stats file rather than
+	kept internal -- how a cohort's percentage was defined is exactly what a
+	reader needs before comparing it with another cohort's.
 	"""
-	mt = np.fromiter(
-		(str(n).startswith(MITO_PREFIXES) for n in adata.var_names),
-		dtype=bool, count=adata.n_vars,
-		)
+	names = [str(n) for n in var_names]
+	forms = [(n, DEDUP_SUFFIX.sub('', n)) for n in names]
+	patterns = [re.compile(p, re.IGNORECASE) for p in (spec.get('patterns') or ())]
+	excludes = [re.compile(p, re.IGNORECASE) for p in (spec.get('exclude') or ())]
+
+	def kept(pair):
+		return not any(r.search(f) for r in excludes for f in pair)
+
+	if patterns:
+		mask = np.fromiter(
+			(kept(pair) and any(r.search(f) for r in patterns for f in pair) for pair in forms),
+			dtype=bool, count=len(names))
+		if mask.any():
+			return mask, 'pattern'
+	wanted = {str(x).upper() for x in (spec.get('symbols') or ())}
+	if wanted:
+		mask = np.fromiter(
+			(kept(pair) and any(f.upper() in wanted for f in pair) for pair in forms),
+			dtype=bool, count=len(names))
+		if mask.any():
+			return mask, 'symbol'
+	return np.zeros(len(names), dtype=bool), 'none'
+
+
+def gene_set_percent(adata, spec):
+	"""Percent of a cell's UMI in a gene set.
+
+	Same gene set and same formula as scanpy's `pct_counts_<name>`, computed
+	directly so a caller that only needs this one metric does not have to run
+	`calculate_qc_metrics` over the whole matrix. Returns
+	`(pct, n_genes, matched_by)`; `pct` is NaN for a barcode with no counts, and
+	all-zero when nothing matched -- `n_genes` is what tells those two apart.
+	"""
+	mask, matched_by = gene_set_mask(adata.var_names, spec)
 	total = np.asarray(adata.X.sum(axis=1)).ravel().astype(float)
-	mt_counts = np.asarray(adata.X[:, mt].sum(axis=1)).ravel().astype(float)
+	set_counts = np.asarray(adata.X[:, mask].sum(axis=1)).ravel().astype(float)
 	with np.errstate(invalid='ignore', divide='ignore'):
-		pct = np.where(total > 0, 100.0 * mt_counts / total, np.nan)
-	return pct, int(mt.sum())
+		pct = np.where(total > 0, 100.0 * set_counts / total, np.nan)
+	return pct, int(mask.sum()), matched_by
+
+
+def mito_percent(adata, spec=None):
+	"""Percent mitochondrial UMI -- `gene_set_percent` for the `mt` set."""
+	return gene_set_percent(adata, spec if spec is not None else GENE_SETS[MITO_SET])
 
 
 # --- Matrix annotations ------------------------------------------------------

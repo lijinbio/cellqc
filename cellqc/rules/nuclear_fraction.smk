@@ -11,6 +11,9 @@ rule nuclear_fraction:
     "nuclear_fraction/{sample}_nf_umi.png",
   params:
     sampleid="{sample}",
+    # The scatter is coloured by the same mitochondrial set filterbycount
+    # thresholds on, read from the same config so the two cannot disagree.
+    mito_geneset=config["geneset"]["mt"],
     cbtag=config["nuclear_fraction"]["cbtag"],
     retag=config["nuclear_fraction"]["retag"],
     exontag=config["nuclear_fraction"]["exontag"],

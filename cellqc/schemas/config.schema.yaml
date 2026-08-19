@@ -73,6 +73,52 @@ properties:
         description: maximum percent mitochondrial counts
     additionalProperties: false
 
+  geneset:
+    type: object
+    description: >
+      QC gene sets, by the name their metric takes in `.obs`: the set `ribo`
+      gives `pct_counts_ribo`. Which genes belong to a set is a property of the
+      reference, not of the pipeline, which is why it is configuration. Only
+      `mt` is filtered on (filterbycount.mito); every other set is computed,
+      plotted and recorded but never used to exclude a cell. Extra sets may be
+      added freely -- each becomes another `pct_counts_*` column and another
+      violin panel. Naming a set here replaces its default definition outright
+      rather than merging key by key.
+    required:
+      - mt
+    additionalProperties:
+      type: object
+      properties:
+        label:
+          type: string
+          description: axis label in the QC violins (default "% <name>")
+        patterns:
+          type: array
+          description: >
+            Case-insensitive regexes, the primary definition of the set. Case
+            insensitivity is what lets one pattern cover human MT-ND1, mouse
+            mt-Nd1 and macaque alike.
+          items:
+            type: string
+        symbols:
+          type: array
+          description: >
+            Exact gene symbols, case-insensitive, used ONLY when no pattern
+            matched anything. The escape hatch for a reference whose
+            mitochondrial genes carry no contig prefix (Ensembl Mmul_10 names
+            them bare: ND1, COX1, CYTB). A fallback rather than a union because
+            a bare symbol such as COX1 is also a nuclear-gene alias.
+          items:
+            type: string
+        exclude:
+          type: array
+          description: >
+            Case-insensitive regexes removed from the match, for genes whose
+            names start like a set member but are not one (RPS6KA1, RPS19BP1).
+          items:
+            type: string
+      additionalProperties: false
+
   doublet:
     type: object
     description: >
@@ -118,6 +164,13 @@ properties:
         type: integer
         minimum: 1
         description: assumed cells recovered per reaction (v0.1.0 hard-coded 13000)
+      nreaction:
+        type: integer
+        minimum: 1
+        description: >
+          Reactions per library, for every sample whose row in the sample file
+          does not give its own. A cohort usually shares one chemistry, so this
+          is where that fact belongs; the per-sample column still wins.
     additionalProperties: false
 
 required:
@@ -125,4 +178,5 @@ required:
   - seed
   - ambient
   - filterbycount
+  - geneset
   - doublet

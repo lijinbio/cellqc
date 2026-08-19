@@ -34,6 +34,7 @@ cellranger = snakemake.input['cellranger']
 filtered_h5 = snakemake.input['filtered']
 out_table, out_pdf, out_png = snakemake.output[0], snakemake.output[1], snakemake.output[2]
 sampleid = snakemake.params['sampleid']
+mito_geneset = dict(snakemake.params['mito_geneset'])
 cbtag = snakemake.params['cbtag']
 retag = snakemake.params['retag']
 exontag = snakemake.params['exontag']
@@ -168,9 +169,12 @@ def plot(barcodes, nf):
 	The mitochondrial percentage colouring the points comes from that same
 	matrix, so it is the pre-correction number -- `raw_pct_counts_mt` in the
 	final `.obs`, not the post-correction `pct_counts_mt` the filter is applied
-	to. Cells with no mitochondrial genes in the reference (a custom or
-	non-standard annotation) get the plain single-colour scatter instead of a
-	colour bar that would read 0% everywhere and imply a measurement.
+	to, and it uses the same `geneset.mt` definition `filterbycount` thresholds
+	on, so the colour and the filter cannot disagree about which genes are
+	mitochondrial. Cells with no mitochondrial genes in the reference (a custom
+	or non-standard annotation, with nothing in `geneset.mt` matching it) get the
+	plain single-colour scatter instead of a colour bar that would read 0%
+	everywhere and imply a measurement.
 
 	The two statistics answer the same question from different sides: a
 	low-depth, high-nuclear-fraction cell that is also high-mitochondrial is a
@@ -189,7 +193,7 @@ def plot(barcodes, nf):
 	adata.var_names_make_unique()
 	umi = np.asarray(adata.X.sum(axis=1)).ravel()
 	order = pd.Index(adata.obs_names)
-	pct_mt, n_mt_genes = qcutil.mito_percent(adata)
+	pct_mt, n_mt_genes, matched_by = qcutil.mito_percent(adata, mito_geneset)
 	pct_mt = pd.Series(pct_mt, index=order).reindex(barcodes).to_numpy()
 	umi = pd.Series(umi, index=order).reindex(barcodes).to_numpy()
 
@@ -197,10 +201,17 @@ def plot(barcodes, nf):
 	x, y = np.log10(umi[ok]), nf[ok]
 	mt = pct_mt[ok]
 	by_mito = n_mt_genes > 0 and bool(np.isfinite(mt).any())
-	if not by_mito:
+	if by_mito:
 		print(
-			f'[nuclear_fraction] {sampleid}: no gene matched {qcutil.MITO_PREFIXES}, '
-			'plotting the nuclear fraction without the mitochondrial colouring',
+			f'[nuclear_fraction] {sampleid}: {n_mt_genes} mitochondrial genes '
+			f'(matched by {matched_by})',
+			flush=True,
+			)
+	else:
+		print(
+			f'[nuclear_fraction] {sampleid}: no gene matched the mitochondrial set '
+			f'({mito_geneset}), plotting the nuclear fraction without the '
+			'mitochondrial colouring',
 			flush=True,
 			)
 

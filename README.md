@@ -8,7 +8,8 @@ The pipeline starts from the Cell Ranger filtered matrix and, per sample:
 1. **Ambient RNA** — SoupX (default) or DecontX estimates background contamination and subtracts it. Other
    methods can be run alongside for comparison without touching the counts.
 2. **Filtering** — cells are removed on total UMI, detected genes and mitochondrial percentage, with every
-   exclusion attributed to a specific criterion.
+   exclusion attributed to a specific criterion. Ribosomal and hemoglobin percentages are computed,
+   plotted and recorded beside them, but nothing is filtered on those.
 3. **Doublets** — DoubletFinder and/or scDblFinder. All callers score every cell; one configured caller
    decides removal.
 4. **Nuclear fraction** — the intronic read fraction per cell, from the Cell Ranger BAM, computed when a
@@ -18,6 +19,10 @@ Output is `.h5ad` matrices, a self-contained HTML report, and a presentation-rea
 
 Cell calling is Cell Ranger EmptyDrops; CellQC does not re-call cells. Cell-type annotation is out of
 scope as of v0.2.0 — annotate downstream.
+
+Human, mouse and macaque references work out of the box: the QC gene sets are configuration
+(`geneset`), and the mitochondrial set falls back to bare mtDNA symbols for references such as Ensembl
+Mmul_10 that carry no `MT-`/`mt-` prefix. Any other organism is a config edit, not a code change.
 
 ![workflow](https://raw.githubusercontent.com/lijinbio/cellqc/master/docs/workflow.png)
 
@@ -86,7 +91,9 @@ cellqc -h
     - `cellranger` is the Cell Ranger output directory. Relative paths are resolved against the
       **sample file's** directory.
     - `nreaction` is the number of reactions in the library prep, used to infer the expected doublet
-      rate when one Cell Ranger run combines several reactions. Defaults to 1.
+      rate when one Cell Ranger run combines several reactions. A sample without its own value takes
+      `doublet.nreaction` from the config, which defaults to 1 — so a cohort on one chemistry sets it
+      once instead of per row.
 
 - The configuration file is YAML and optional. The defaults are:
 
@@ -105,6 +112,23 @@ filterbycount:
   mincount: 500
   minfeature: 300
   mito: 10
+geneset:                  # QC gene sets; only `mt` is filtered on
+  mt:
+    label: '% mitochondrial'
+    patterns: ['^MT-']            # case-insensitive: human MT-ND1, mouse mt-Nd1
+    symbols: [ND1, ND2, ND3, ND4, ND4L, ND5, ND6,
+              COX1, COX2, COX3, ATP6, ATP8, CYTB]   # fallback: macaque & other prefix-free references
+    exclude: []
+  ribo:
+    label: '% ribosomal'
+    patterns: ['^RP[SL]\d', '^RPLP\d', '^RPSA$']
+    symbols: []
+    exclude: ['^RPS6K', '^RPS19BP']   # kinases and a binding protein, not ribosomal proteins
+  hb:
+    label: '% hemoglobin'
+    patterns: ['^HB[ABDEGMQZ]([0-9][AB]?)?$', '^HB[AB]-[A-Z0-9]+$']
+    symbols: []
+    exclude: []
 doublet:
   run: [doubletfinder, scdblfinder]   # callers to execute
   decider: doubletfinder              # the single caller whose call removes cells
@@ -113,6 +137,7 @@ doublet:
   pK: 0.01
   rate: 0.1               # 10x multiplet rate at `capacity` cells recovered
   capacity: 13000
+  nreaction: 1            # per-sample default; the sample-file column wins
 ```
 
 ### Inspection of configuration
@@ -142,14 +167,57 @@ unreviewed auto-filtering.
 | filterbycount.mito | Maximum percentage of mitochondrial counts. |
 
 All three are applied to the **ambient-corrected** counts, and `.obs` reports them as `total_counts`,
-`n_genes_by_counts` and `pct_counts_mt`. The same three metrics computed on the uncorrected Cell Ranger
-counts are carried alongside as `raw_total_counts`, `raw_n_genes_by_counts` and `raw_pct_counts_mt`; they
-are informative only, no threshold is applied to them. `raw_` means *before ambient correction* — the
+`n_genes_by_counts` and `pct_counts_mt`, plus one `pct_counts_<set>` per further gene set
+(`pct_counts_ribo`, `pct_counts_hb` by default — see `geneset` below; recorded, never filtered on). The
+same metrics computed on the uncorrected Cell Ranger counts are carried alongside as `raw_total_counts`,
+`raw_n_genes_by_counts`, `raw_pct_counts_mt`, `raw_pct_counts_ribo`, `raw_pct_counts_hb`; they are
+informative only, no threshold is applied to them. `raw_` means *before ambient correction* — the
 source is `filtered_feature_bc_matrix.h5`, the same cells, not the all-droplets
 `raw_feature_bc_matrix.h5`. The per-cell fraction the correction removed is
 `1 - total_counts / raw_total_counts`.
 
-4. `doublet`
+4. `geneset` — what counts as mitochondrial, ribosomal, hemoglobin
+
+Which genes belong to a QC gene set is a property of the **reference**, not of the pipeline, so the sets
+are configuration. Each set becomes a `pct_counts_<set>` column in `.obs`, a panel in the QC violins and a
+pair of columns in `result/metrics.csv`. Sets may be added freely — a new key here is a new column and a
+new panel, no code change.
+
+| Key | Description |
+|-------|-------|
+| geneset.\<set\>.label | Axis label in the QC violins. Defaults to `% <set>`. |
+| geneset.\<set\>.patterns | Case-insensitive regexes — the primary definition. Case insensitivity is what lets one pattern cover human `MT-ND1`, mouse `mt-Nd1` and macaque alike. |
+| geneset.\<set\>.symbols | Exact gene symbols, case-insensitive, used **only when no pattern matched anything**. |
+| geneset.\<set\>.exclude | Case-insensitive regexes removed from the match. |
+
+Naming a set in your config **replaces that set's definition outright** rather than merging key by key —
+inheriting a default `symbols` under your own `patterns` would apply the prefix-free fallback to a
+reference you had just told the pipeline how to read.
+
+Why `symbols` is a fallback and not a union: references disagree about mitochondrial gene names. Human
+GRCh38 and mouse GRCm39 prefix them with the contig (`MT-ND1`, `mt-Nd1`), so a pattern is enough.
+**Ensembl Mmul_10 (macaque, and several other non-model references) name them bare** — `ND1`, `COX1`,
+`CYTB`, with nothing to prefix-match. Those bare symbols are ambiguous elsewhere (`COX1` is also a legacy
+alias of the nuclear gene *PTGS1*), so they are claimed only in a reference where no prefixed
+mitochondrial gene exists at all. In GRCh38 the pattern matches first and the fallback never runs; in
+Mmul_10 all 13 protein-coding mtDNA genes are found. Which route was taken is recorded per sample as
+`filter_mt_matched_by` (`pattern`, `symbol` or `none`) in `metrics.csv`, alongside `filter_n_mt_genes` —
+a median % is not comparable across cohorts without knowing which genes it was computed over.
+
+The `exclude` lists exist for names that start like a set member but are not one: `RPS6KA1`–`RPS6KA6`,
+`RPS6KB1`/`RPS6KB2`, `RPS6KC1`, `RPS6KL1` are kinases and `RPS19BP1` is a binding protein. The hemoglobin
+patterns are written as full matches for the same reason — a bare `^HB` prefix would swallow `HBEGF`,
+`HBP1` and `HBS1L`.
+
+**Only `mt` is filtered on** (`filterbycount.mito`). `ribo` and `hb` are computed, plotted and written to
+`.obs`, and no cell is excluded on them: a defensible cut-off for either is tissue-dependent — retina and
+blood-contaminated tissue disagree by an order of magnitude — and cellqc does not exclude cells on a
+number nobody has looked at. Their violin panels carry no threshold line and are labelled *(not
+filtered)*. They are still worth having: a cell whose UMI are dominated by ribosomal protein transcripts
+reads differently from one dominated by hemoglobin (red-blood-cell carry-over), and both are visible at a
+glance next to the criteria that do remove cells.
+
+5. `doublet`
 
 There is **no skip flag**, for the same reason `nuclear_fraction` has none: what runs is the list of
 callers, and a caller you do not want is left out of `doublet.run`. Doublet detection itself always runs.

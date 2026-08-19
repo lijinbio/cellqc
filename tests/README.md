@@ -10,11 +10,17 @@ bash tests/dryrun.sh
 
 Builds stub Cell Ranger directories, runs `cellqc -n` over them, and checks that the workflow still
 produces what it promises: the final matrix and its `.obs`/`.var` dumps, the pre-integration matrix, both
-reports, the nuclear fraction only for the sample that has a BAM, a rejected obsolete config key, and the
-`nreaction` scaling of the expected doublet rate. Seconds, no cluster, no data — `--dry-run` only needs
+reports, the nuclear fraction only for the sample that has a BAM, a rejected obsolete config key, the
+`nreaction` scaling of the expected doublet rate (including its config-level default, for a sample file
+with no `nreaction` column), and the QC gene sets — human and mouse matched by pattern, macaque by the
+bare-symbol fallback, with `RPS6KA1`/`RPS19BP1`/`HBEGF`/`HBP1`/`HBS1L` staying out of their look-alike
+sets, one set redefinable without disturbing the others, and an emptied `geneset.mt` rejected. It also
+compares the dumped `config_<timestamp>.yaml` against `qcutil.GENE_SETS`, the second copy of the same
+defaults, so the two cannot drift apart unnoticed. Seconds, no cluster, no data — `--dry-run` only needs
 the input paths to exist. Prints `PASS`/`FAIL` and exits non-zero on failure.
 
-Run it after changing `rules/config.smk`, the schema, `Snakefile`, or any rule's outputs.
+Run it after changing `rules/config.smk`, the schema, `Snakefile`, any rule's outputs, or
+`qcutil.GENE_SETS`.
 
 ## `validate_nuclear_fraction.py` — acceptance gate
 
