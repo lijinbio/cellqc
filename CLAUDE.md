@@ -208,6 +208,10 @@ change them together.
   `pip install -e .`**: `importlib.metadata` reads what pip wrote, so in an editable install the number is
   frozen at install time and the reports would otherwise stamp the previous release. (Before v0.3.3 the
   version lived in `__init__.py` with `dynamic = ["version"]`, which needed no reinstall.)
+- Release to PyPI with the `pypibuild.sh` and `pypiupload.sh` wrappers (internal, on `PATH`), run from the
+  `base` conda env, which has `build` and `twine`: `pypibuild.sh`, then
+  `pypiupload.sh dist/cellqc-X.Y.Z*`. A released version cannot be re-uploaded, so a fix after a release
+  is a new version.
 - The author is `pyproject.toml`'s `authors` alone. `__author__`/`__email__` were cookiecutter leftovers
   with no consumers and no PEP behind them (`importlib.metadata.metadata()` is the supported accessor);
   they were removed in v0.3.3. Do not reintroduce metadata dunders in `cellqc/__init__.py`.
