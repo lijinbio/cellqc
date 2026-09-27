@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cellqc"
-version = "0.3.4"
+version = "0.3.5"
 description = "Cellqc standardizes the quality control of single-cell RNA-Seq (scRNA) data to render clean feature count matrices."
 readme = "README.md"
 # The runtime environment is Python 3.12 (envs/cellqc.yaml); 3.9 is the oldest

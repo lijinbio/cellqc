@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version
 
-The tree is **v0.3.4**. `docs/design.md` carries the design rationale and the validation results —
+The tree is **v0.3.5**. `docs/design.md` carries the design rationale and the validation results —
 read it before changing the workflow.
 
 Environment: `envs/cellqc.yaml` plus one GitHub build (DoubletFinder is not on conda).
@@ -158,8 +158,9 @@ The R doublet steps write only a per-barcode metadata TSV; Python applies it. R 
 which keeps a second serializer out of the count path.
 
 **`result/` is what a user takes away**, and the final matrix is `postproc`'s output, published by
-`publish` as a hard link. `postproc/{s}.h5ad` is `temp()`, so no leftover copy sits in `postproc/`, the
-directory readers once mistook for a leftover. Every stage writes to `<rulename>/`; only
+`publish` as a hard link. Every `postproc` output, its status file included, is `temp()`, so no
+`postproc/` directory survives the run — readers once mistook it for a leftover, and v0.3.4 left it holding
+only status files. **Keep a new `postproc` output `temp()` too.** Every stage writes to `<rulename>/`; only
 the final matrix, the doublet statistics (written to `filterdoublet/`, published), the status tables and
 the two reports live in `result/`. `result/{s}.h5ad` carries
 `_obs.txt.gz`/`_var.txt.gz` dumps written by `qcutil.write_obs_var`, indexed by `barcode`/`gene`, so `.obs`

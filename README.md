@@ -300,8 +300,7 @@ The intermediate matrices (`filterbycount/{sample}.h5ad`, `filterdoublet/{sample
 `filterdoublet/`'s is marked `temp` and deleted once the final matrix is written: it held the same
 cells and the same counts, differing only in the barcode prefix and the nuclear-fraction columns, so
 keeping it wrote every count matrix to disk twice. To keep it, run the workflow through Snakemake directly
-with `--notemp` — the `cellqc` CLI does not pass Snakemake flags through. The final matrix itself is
-written to `postproc/` (also `temp`) and hard-linked into `result/`, so it exists on disk once.
+with `--notemp` — the `cellqc` CLI does not pass Snakemake flags through.
 
 ### When a sample fails a step
 

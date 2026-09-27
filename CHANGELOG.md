@@ -1,3 +1,11 @@
+# v0.3.5 - Sep 26, 2026
+
+- No `postproc/` directory is left after a run. Its status file, `postproc/{sample}_status.tsv`, was the
+  one `postproc` output not marked `temp`, so the directory survived holding only status files after the
+  matrices were published to `result/`. The status reaches `result/qc_status.csv` through the `qcstatus`
+  checkpoint, its only reader, and is now `temp` too. Snakemake removes the empty directory at the end of
+  the run. Status files left in an existing outdir by v0.3.4 are not removed; delete them by hand.
+
 # v0.3.4 - Sep 26, 2026
 
 Per-sample failure tolerance. One sample failing one step no longer stops the run for every sample. A
