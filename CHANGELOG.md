@@ -1,3 +1,12 @@
+# v0.3.6 - Sep 26, 2026
+
+- DoubletFinder is installed from conda. bioconda now packages it as `r-doubletfinder`, so
+  `envs/cellqc.yaml` depends on `r-doubletfinder>=2.0.6` and the `remotes::install_github()` step is gone
+  from the installation instructions. `r-remotes`, `r-rocr`, `r-fields` and `r-kernsmooth` are dropped from
+  the environment file: the first ran the GitHub build and the other three were DoubletFinder's own
+  dependencies, which its conda package now brings in. The floor is 2.0.6 because `doubletfinder.R` passes
+  `reuse.pANN=NULL`, which older releases do not accept. No workflow code changes; results are unchanged.
+
 # v0.3.5 - Sep 26, 2026
 
 - No `postproc/` directory is left after a run. Its status file, `postproc/{sample}_status.tsv`, was the

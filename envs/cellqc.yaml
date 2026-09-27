@@ -1,10 +1,10 @@
-# cellqc v0.3.2 runtime environment.
-# Everything here comes from conda-forge/bioconda. The ONLY component that is
-# not conda-installable is DoubletFinder (GitHub-only); see README.md.
+# cellqc v0.3.6 runtime environment.
+# Everything here comes from conda-forge/bioconda, DoubletFinder included
+# (bioconda r-doubletfinder since v0.3.6; before that it was a GitHub build).
 #
 # The rule is "declare what the code imports": every package below is named by
 # an import in cellqc/ or by a library()/:: call in a workflow script, apart
-# from the four marked as indirect. Transitive dependencies are left to the
+# from the one marked as indirect. Transitive dependencies are left to the
 # solver.
 name: cellqc
 channels:
@@ -43,11 +43,6 @@ dependencies:
   - bioconductor-zellkonverter
   - bioconductor-scdblfinder
   - bioconductor-celda   # DecontX
-  # --- for the DoubletFinder install step, and its dependencies ---
-  # remotes runs the one GitHub build the README documents; the other three are
-  # DoubletFinder's own imports, kept here so that build does not have to reach
-  # CRAN for them.
-  - r-remotes
-  - r-rocr
-  - r-fields
-  - r-kernsmooth
+  # 2.0.6 changed the reuse.pANN check to !is.null(); doubletfinder.R passes
+  # NULL, which an older release would misread.
+  - r-doubletfinder>=2.0.6

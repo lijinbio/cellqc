@@ -35,9 +35,6 @@ From conda (recommended — this pulls the whole analysis stack):
 ```
 mamba create -n cellqc -c conda-forge -c bioconda cellqc
 conda activate cellqc
-
-# DoubletFinder is not packaged for conda; see below
-Rscript -e "remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', upgrade=FALSE)"
 ```
 
 From the environment file, if you want the exact development environment or are working from a clone:
@@ -45,7 +42,6 @@ From the environment file, if you want the exact development environment or are 
 ```
 mamba env create -n cellqc -f envs/cellqc.yaml
 conda activate cellqc
-Rscript -e "remotes::install_github('chris-mcginnis-ucsf/DoubletFinder', upgrade=FALSE)"
 pip install -U cellqc          # or `pip install -e .` from a clone
 ```
 
@@ -53,11 +49,13 @@ pip install -U cellqc          # or `pip install -e .` from a clone
 pysam and the entire R side come from conda, because pip cannot install R packages. Use one of the two
 routes above.
 
-If you would rather avoid the GitHub build entirely, set `doublet.run: [scdblfinder]` and
-`doublet.decider: scdblfinder` in the config; scDblFinder comes from bioconda.
+Both routes install DoubletFinder from bioconda (`r-doubletfinder`). No GitHub build is needed. Before
+v0.3.6 DoubletFinder had to be built from GitHub with `remotes::install_github()` after the conda step; an
+environment set up that way keeps working.
 
 v0.2.0 removed five of the six GitHub builds v0.1.0 needed (SeuratDisk, harmony, scPred, DropletQC and the
 `lijinbio/DoubletFinder` fork) and all four version pins (Seurat v4, `r-matrix`, `pandas<2`, `anndata`).
+v0.3.6 removed the sixth, DoubletFinder itself.
 
 Dependent software:
 
@@ -73,7 +71,7 @@ Dependent software:
 | scDblFinder | doublet detection | conda |
 | DropletUtils | 10x matrix I/O | conda |
 | tectonic | builds the PDF slide report | conda |
-| **DoubletFinder** | **doublet detection (default caller)** | **GitHub only** |
+| DoubletFinder | doublet detection (default caller) | conda |
 
 To test the installation:
 

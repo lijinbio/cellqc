@@ -36,7 +36,7 @@ v0.2.0 is a deliberate simplification and modernization of the pipeline:
 |---|---|
 | Single conda env (py3.12 + R 4.5 + all deps) | Solves cleanly, 486 packages — verified by `mamba env create --dry-run` |
 | `r-soupx`, `bioconductor-dropletutils`, `bioconductor-zellkonverter`, `r-seurat 5.5.1`, `pysam`, `tectonic` | All on conda-forge/bioconda |
-| **DoubletFinder** | **Not on conda.** GitHub-only — the one remaining `remotes::install_github` |
+| **DoubletFinder** | **Not on conda.** GitHub-only — the one remaining `remotes::install_github`. *(Since v0.3.6: on bioconda as `r-doubletfinder` 2.0.6; the GitHub build is gone.)* |
 | `lijinbio/DoubletFinder` fork | Obsolete. Upstream v2.0.6 already dispatches on Seurat version via `LayerData(seu, layer="counts")`; the fork is *behind* upstream. Switch to upstream. |
 | `DropletQC` | GitHub-only. Reimplementing its one used function in pysam removes this dependency (§4). |
 | Test sample | Cell Ranger 10.0.0, 3' v3 (polyA), GRCh38, 38,606 features × 2,139,892 raw barcodes, 13,559 called cells |

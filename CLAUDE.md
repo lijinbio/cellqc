@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version
 
-The tree is **v0.3.5**. `docs/design.md` carries the design rationale and the validation results —
+The tree is **v0.3.6**. `docs/design.md` carries the design rationale and the validation results —
 read it before changing the workflow.
 
-Environment: `envs/cellqc.yaml` plus one GitHub build (DoubletFinder is not on conda).
+Environment: `envs/cellqc.yaml`, all conda. DoubletFinder is bioconda's `r-doubletfinder` (≥ 2.0.6) since
+v0.3.6; before that it was a GitHub build.
 
 ```bash
 source "$(conda info --base)/etc/profile.d/conda.sh" && conda activate cellqc_v0.3.1
@@ -125,8 +126,9 @@ hand-edit the PNG — the v0.1.0 diagram went stale for a whole release because 
 The analysis stack lives in `envs/cellqc.yaml`, not `pyproject.toml` (pip cannot install R packages).
 `pyproject.toml` declares only what the CLI itself imports. The bioconda recipe is maintained separately at
 `../bioconda-recipes/recipes/cellqc/meta.yaml`, and it is the only place the R dependencies are declared as
-installable — with the exception of DoubletFinder, which is GitHub-only and cannot be a conda dependency at
-all (bioconda forbids network access at install time; the fix would be a separate `r-doubletfinder` recipe).
+installable. Its run requirements are kept in step with `envs/cellqc.yaml` — change both together.
+DoubletFinder comes from bioconda's own `r-doubletfinder` recipe (`../bioconda-recipes/recipes/r-doubletfinder/`),
+pinned `>=2.0.6` for the `reuse.pANN=NULL` check.
 
 ## Architecture
 
