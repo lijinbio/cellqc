@@ -4,6 +4,9 @@
 Every figure is inlined as a base64 data URI so the file can be emailed or
 archived on its own. PNG twins are used here because an <img> cannot render the
 vector PDFs; the PDFs go into the slide deck.
+
+A figure a failed or skipped step did not produce keeps its slot, with the
+reason in place of the image, so a gap in the report is always explained.
 """
 
 import base64
@@ -24,6 +27,7 @@ nf_samples = snakemake.params['nf_samples']
 callers = snakemake.params['callers']
 outfile = snakemake.output['html']
 metricsfile = snakemake.output['metrics']
+statusfile = snakemake.input['qc_status']
 
 TEMPLATE_DIR = Path(__file__).parent / 'template'
 
@@ -54,11 +58,14 @@ def get_resource_as_string(path):
 def to_html(df):
 	if df is None or not len(df):
 		return None
-	return df.to_html(index=False, na_rep='', float_format=lambda v: f'{v:,.4g}')
+	return df.to_html(index=False, na_rep='NA', float_format=lambda v: f'{v:,.4g}')
 
 
 def figure_sections(data):
-	"""Ordered figure blocks, each a list of (sample, data_uri)."""
+	"""Ordered figure blocks, each a list of (sample, data_uri, note).
+
+	`data_uri` is None for a figure that was not produced; `note` then says why.
+	"""
 	spec = [
 		('barcoderank', 'Barcode rank',
 			'Cell Ranger EmptyDrops call (dashed) against the UMI-rank curve. '
@@ -81,19 +88,22 @@ def figure_sections(data):
 		]
 	out = []
 	for key, title, blurb in spec:
-		paths = data['figures'].get(key, {})
 		imgs = []
-		for sid, pattern in paths.items():
-			png = pattern.format(ext='png')
-			if os.path.exists(png):
-				imgs.append((sid, data_uri_from_file(png)))
+		for sid in data['figures'].get(key, {}):
+			png, why = reportdata.figure(data, key, sid, 'png')
+			row = reportdata.step_status(data, sid, reportdata.FIGURE_STEP.get(key, key))
+			fell_back = f"Fallback: {row['message']}." if row is not None and row['status'] == 'fallback' else None
+			if png:
+				imgs.append((sid, data_uri_from_file(png), fell_back))
+			elif why:
+				imgs.append((sid, None, f'{title} not available: {why}'))
 		if imgs:
 			out.append({'title': title, 'blurb': blurb, 'images': imgs})
 	return out
 
 
 def main():
-	data = reportdata.collect(samples, sampledir, config, nf_samples, callers)
+	data = reportdata.collect(samples, sampledir, config, nf_samples, callers, statusfile)
 
 	env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
 	env.filters['get_resource_as_string'] = get_resource_as_string
@@ -108,6 +118,9 @@ def main():
 		callers=data['callers'],
 		decider=data['decider'],
 		cascade=to_html(data['cascade']),
+		nincluded=len(data['included']),
+		excluded=data['excluded'],
+		problems=to_html(data['problems']),
 		cellrangersummary=to_html(data['cellranger_metrics']),
 		barcoderank=to_html(data['barcoderank']),
 		ambient=to_html(data['ambient']),
@@ -125,7 +138,9 @@ def main():
 	# The machine-readable twin of the report: every scalar the run produced,
 	# one row per sample. Written here so it is assembled from the same
 	# reportdata.collect() call the HTML is, and cannot disagree with it.
-	data['metrics'].to_csv(metricsfile, index=False)
+	# NA, not an empty cell, for what was not computed: a failed sample keeps its
+	# row, and a blank is too easily read as zero or as a parsing error.
+	data['metrics'].to_csv(metricsfile, index=False, na_rep='NA')
 	print(f'[qcreport] wrote {metricsfile} '
 		f"({data['metrics'].shape[0]} samples x {data['metrics'].shape[1]} metrics)", flush=True)
 

@@ -1,4 +1,4 @@
-/* cellqc v0.2.0 pipeline overview -- source for docs/workflow.png.
+/* cellqc pipeline overview (v0.2.0; qcstatus gate added in v0.3.4) -- source for docs/workflow.png.
  *
  * Regenerate with docs/make_figures.sh (or: dot -Tpng -Gdpi=300 docs/workflow.dot
  * -o docs/workflow.png). Keeping the source in the repo is why the v0.1.0
@@ -7,6 +7,10 @@
  * The one distinction the diagram has to carry is which steps touch the counts.
  * Solid = the count matrix is modified. Dashed = computed and reported, never
  * used to drop a cell.
+ *
+ * v0.3.4: every per-sample step records ok / fallback / failed / skipped, and
+ * the qcstatus checkpoint decides which samples reach result/. A failure is a
+ * recorded outcome, not the end of the run.
  */
 digraph cellqc {
 	graph [bgcolor=white, rankdir=TB, nodesep=0.45, ranksep=0.40, fontname="Helvetica"];
@@ -21,6 +25,8 @@ digraph cellqc {
 	filter  [label="Filter on counts (scanpy)\nUMI, genes, % mitochondrial", color="#106e78", penwidth=1.8];
 	doublet [label="Doublets\nDoubletFinder + scDblFinder\none configured caller removes cells",
 		color="#106e78", penwidth=1.8];
+	gate    [label="qcstatus checkpoint\nevery step's status -> result/qc_status.csv\nonly samples through every required step are published",
+		shape=box, style="rounded,filled", fillcolor="#f7f0f0", color="#c44e52", penwidth=1.5];
 	post    [label="result/{sample}.h5ad\nfinal: QC'd counts, ready for integration\n+ {sample}_obs.txt.gz / _var.txt.gz",
 		fillcolor="#e6f0f1", color="#106e78", penwidth=1.8];
 
@@ -30,23 +36,24 @@ digraph cellqc {
 	nf   [label="Nuclear fraction (pysam)\nrun when the sample has a BAM",
 		style="rounded,dashed,filled", color="#7a7a7a"];
 
-	reports [label="result/report.html\nresult/report_slides.pdf\nresult/metrics.csv",
+	reports [label="result/report.html\nresult/report_slides.pdf\nresult/metrics.csv\nresult/qc_status.csv, manifest.tsv",
 		fillcolor="#f7f1e4", color="#a07a28"];
 
 	/* Main chain, weighted so it stays a straight vertical spine. */
 	cr -> ambient [weight=10];
 	ambient -> filter [weight=10];
 	filter -> doublet [weight=10];
-	doublet -> post [weight=10];
+	doublet -> gate [weight=10];
+	gate -> post [weight=10];
 
 	cr -> knee [style=dashed, color="#7a7a7a"];
 	cr -> nf   [style=dashed, color="#7a7a7a"];
-	nf -> post [style=dashed, color="#7a7a7a", label=" attached to .obs",
+	nf -> gate [style=dashed, color="#7a7a7a", label=" attached to .obs",
 		fontsize=9, fontcolor="#5a5a5a"];
 
 	/* Both reports are built from one collected set of stats, so the HTML and
 	 * the slides cannot describe different runs. */
-	post -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
+	gate -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
 	knee -> reports [style=dotted, color="#9a9a9a", arrowsize=0.6];
 
 	note [shape=plaintext, style="", fontsize=9, fontcolor="#5a5a5a",
@@ -54,10 +61,10 @@ digraph cellqc {
 	reports -> note [style=invis];
 
 	legend [shape=box, style="rounded", color="#cccccc", fontsize=9, fontcolor="#3c3c3c",
-		label="solid  modifies the count matrix\ldashed  reported only, never filters\l"];
+		label="solid  modifies the count matrix\ldashed  reported only, never filters\lred  a failed step excludes a sample here, never the run\l"];
 	post -> legend [style=invis];
 
 	{ rank=same; knee; ambient; nf; }
-	{ rank=same; post; reports; }
+	{ rank=same; gate; reports; }
 	{ rank=same; legend; note; }
 }

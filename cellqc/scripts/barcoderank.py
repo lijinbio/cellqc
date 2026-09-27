@@ -17,7 +17,7 @@ import pandas as pd
 import scanpy as sc
 from scipy.interpolate import LSQUnivariateSpline
 
-from cellqc import qcutil
+from cellqc import qcstatus, qcutil
 
 in_raw = snakemake.input['raw']
 in_filtered = snakemake.input['filtered']
@@ -81,7 +81,7 @@ def knee_inflection(totals, lower=100, df=20):
 	return float(10 ** y[i_knee]), float(10 ** y[i_inflect]), n
 
 
-def main():
+def main(st):
 	raw_totals, n_raw = totals_from_h5(in_raw)
 	_, n_called = totals_from_h5(in_filtered)
 
@@ -137,4 +137,4 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+	qcstatus.run(snakemake, 'barcoderank', main)

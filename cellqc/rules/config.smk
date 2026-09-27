@@ -197,12 +197,21 @@ if nobam:
 		file=sys.stderr,
 		)
 
+# A missing input is a sample-file error, not a sample that failed QC, so it
+# stops the run before anything is computed -- the per-sample failure handling
+# (rules/qcstatus.smk) is for data a step could not process, not for a typo.
 missing=[s for s in samples.index if not Path(samples.loc[s, 'cellrangerdir']).is_dir()]
 if missing:
 	raise FileNotFoundError(
 		f"Cell Ranger directory not found for sample(s) {missing}. "
 		f"Paths in {config['samples']} are resolved relative to {sampledir}."
 		)
+missing=[
+	f"{s}: {h5}" for s in samples.index for h5 in ('raw_feature_bc_matrix.h5', 'filtered_feature_bc_matrix.h5')
+	if not (Path(samples.loc[s, 'cellrangerdir']) / h5).exists()
+	]
+if missing:
+	raise FileNotFoundError(f"Cell Ranger matrix not found: {missing}.")
 
 # debug parameters
 print(json.dumps(config, indent=4))

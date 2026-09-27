@@ -6,6 +6,7 @@ rule barcoderank:
     "barcoderank/{sample}_barcoderank.pdf",
     "barcoderank/{sample}_barcoderank.png",
     "barcoderank/{sample}_knee.txt",
+    status="barcoderank/{sample}_status.tsv",
   params:
     sampleid="{sample}",
   script:

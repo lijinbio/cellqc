@@ -11,19 +11,25 @@ emerge from how the code happens to be wired.
 Concordance between callers is computed here (2x2 table plus Cohen's kappa) and
 carried into both reports. It is a consistency measure, not an accuracy measure
 -- with no ground-truth doublets neither caller can be shown correct.
+
+A caller that failed on this sample is tolerated unless it is the decider: its
+columns are absent from .obs, its summary row is NA, and no concordance is
+computed against it. A failed decider skips this step -- and so excludes the
+sample -- rather than silently handing the decision to another caller, which
+would make one sample's doublet removal differ in method from the cohort's.
 """
 
 import itertools
-import os
 
 import numpy as np
 import pandas as pd
 import scanpy as sc
 
-from cellqc import qcutil
+from cellqc import qcstatus, qcutil
 
 in_h5ad = snakemake.input['h5ad']
-in_meta = list(snakemake.input['metadata'])
+in_meta = qcstatus.as_list(snakemake.input['metadata'])
+in_caller_status = qcstatus.as_list(snakemake.input['caller_status'])
 out_h5ad = snakemake.output['h5ad']
 out_summary = snakemake.output['summary']
 out_concordance = snakemake.output['concordance']
@@ -59,14 +65,21 @@ def cohens_kappa(a, b):
 	return (po - pe) / (1 - pe)
 
 
-def main():
+def main(st):
 	adata = sc.read_h5ad(in_h5ad)
 	n_before = adata.n_obs
 	rows = []
 
+	# `metadata` and `caller_status` are both in `callers` order (common.smk).
+	ran = [c for c, sf in zip(callers, in_caller_status) if qcstatus.usable(sf)]
+	lost = [c for c in callers if c not in ran]
+	if lost:
+		st.note(f"{', '.join(lost)} unavailable; {decider} alone decided and no concordance was computed")
+
 	# Merge each caller's metadata onto .obs by barcode.
-	for path in in_meta:
-		caller = os.path.basename(os.path.dirname(path)) or os.path.basename(path).split('_')[0]
+	for caller, path in zip(callers, in_meta):
+		if caller not in ran:
+			continue
 		meta = pd.read_csv(path, sep='\t', header=0).set_index('barcode')
 		missing = adata.obs_names.difference(meta.index)
 		if len(missing):
@@ -79,6 +92,13 @@ def main():
 			adata.obs[col] = meta[col].to_numpy()
 
 	for caller in callers:
+		if caller not in ran:
+			rows.append({
+				'sampleid': sampleid, 'caller': caller, 'is_decider': False,
+				'ndoublet': np.nan, 'ncell': n_before, 'frac_doublet': np.nan,
+				})
+			print(f'[filterdoublet] {sampleid}: {caller} did not run on this sample', flush=True)
+			continue
 		_, classcol = qcutil.CALLER_COLUMNS[caller]
 		if classcol not in adata.obs:
 			raise ValueError(f'{sampleid}: expected column {classcol} from caller {caller}, not found')
@@ -96,7 +116,7 @@ def main():
 
 	# Pairwise concordance. Descriptive: agreement is not evidence of accuracy.
 	conc = []
-	for a, b in itertools.combinations(callers, 2):
+	for a, b in itertools.combinations(ran, 2):
 		ca = (adata.obs[qcutil.CALLER_COLUMNS[a][1]] == 'Doublet').to_numpy()
 		cb = (adata.obs[qcutil.CALLER_COLUMNS[b][1]] == 'Doublet').to_numpy()
 		k = cohens_kappa(ca, cb)
@@ -146,4 +166,4 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+	qcstatus.run(snakemake, 'filterdoublet', main, requires=snakemake.input['upstream'])

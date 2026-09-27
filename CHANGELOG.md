@@ -1,3 +1,63 @@
+# v0.3.4 - Sep 26, 2026
+
+Per-sample failure tolerance. One sample failing one step no longer stops the run for every sample. A
+sample for which every step succeeds is processed exactly as in v0.3.3, with the same matrix and the same
+numbers. What changes is how a failure is handled, and a few output locations and columns, listed at the
+end.
+
+- **Every per-sample step records its outcome** in `{stage}/{sample}_status.tsv` with columns
+  `sample, step, status, message`. `status` is `ok`, `fallback`, `failed` or `skipped`. One mechanism
+  covers all steps, `cellqc/qcstatus.py` for the Python ones and its twin `scripts/guard.R` for the R ones,
+  rather than a `try` in each script. The step body is guarded, but imports and `library()` calls are not,
+  so a broken environment still stops the run. A failed step logs its traceback and its reason. A step whose
+  input step is unusable is `skipped` and carries that step's reason forward, so the last step in a chain
+  still names the root cause. Every declared output is left behind, as a 0-byte placeholder if the step
+  did not write it, which keeps the DAG shape fixed. A matrix a failed step may have half-written is
+  truncated rather than kept.
+- **Fallbacks, where one exists.** If the applied ambient method fails, for example SoupX's `autoEstCont`
+  with "No plausible marker genes found" on a low-complexity channel, the sample continues on the
+  uncorrected Cell Ranger counts. This is recorded as `ambient: fallback`. The contamination table keeps a
+  row for the failed method with `NA` estimates and adds a `none` row for what was applied. The ambient
+  figure states the failure and its reason. A comparison-only method that fails is recorded as
+  `ambient.<method>: failed` and changes nothing else.
+- **Diagnostic steps never exclude a sample.** This covers `barcoderank` and `nuclear_fraction`: without
+  the latter the final matrix is written without the nuclear fraction, as for a sample with no BAM. It also
+  covers a non-deciding doublet caller: its `.obs` columns, summary row and concordance are `NA`, and the
+  decider alone decides. A failed **decider** excludes the sample rather than handing the decision to the
+  other caller, which would make one sample's doublet removal differ in method from the cohort's.
+  Failures in `filterbycount` (including "all cells removed"), `filterdoublet` or `postproc` also exclude
+  the sample.
+- **`result/` holds only the samples that made it through.** A new `qcstatus` checkpoint collects every
+  status into `result/qc_status.csv`, with every sample × step plus a final `result` row per sample, and
+  into `result/manifest.tsv`, with columns `included`, `ncell`, `reason` and `fallback`. The final matrix is
+  published to `result/` by a new `publish` rule only for included samples. It is a hard link to
+  `postproc/`'s `temp()` output, so it is still written once, and no placeholder ever reaches `result/`.
+- **Every sample in every table.** `result/metrics.csv` and every report table keep a row for each
+  sample, with `NA` rather than an empty cell for what was not computed. `metrics.csv` gains
+  `status_<step>`, `qc_included` and `qc_excluded_reason` as its last columns. A caller's doublet count now
+  comes from the caller itself when `filterdoublet` did not run. The cell-retention cascade gains an
+  `in_result` column.
+- **Reports render from whatever is available.** Both reports open with a *Sample status* section: how
+  many samples reached `result/`, the excluded ones with reasons, and every step that did not complete
+  normally. The HTML report links to `qc_status.csv`. A figure a failed step did not produce keeps its slot
+  with the reason, for example "Ambient RNA not available: ambient failed: ...", instead of vanishing. A
+  missing, empty or unreadable stats file never raises. Messages are folded to ASCII for the slide deck, so
+  an R error with a curly quote cannot break the LaTeX build.
+- **The slide deck fits any cohort size.** The *Cells retained at each stage* table used to run off the
+  bottom of its slide for about 15 or more samples, cutting off the table and the note under it. It is now
+  split across frames of 12 rows. Every table in the deck is also scaled down when it is too tall, as it
+  already was when too wide.
+- **Exit status.** The run succeeds when at least one sample reaches `result/`. The excluded samples are
+  logged at the end with their reasons. It fails when no sample does, and on any error that is not about
+  one sample: a bad configuration, a missing Cell Ranger directory or matrix (now checked before anything
+  runs), a missing package, or a deck that does not compile. The CLI passes `--keep-going` to Snakemake, so
+  a job killed by the system does not stop the other samples' jobs.
+- Output locations and columns. `result/{sample}_doublet_summary.txt` and `_doublet_concordance.txt` are
+  written to `filterdoublet/` and published to `result/` with the matrix, so an excluded sample leaves no
+  stub in `result/`. The final matrix's working copy is `postproc/{sample}.h5ad` (`temp`). A dry run
+  lists `postproc/` rather than `result/` matrices, because which samples are published is decided at run
+  time. `min_version` is 8.0, the floor `envs/cellqc.yaml` already declared.
+
 # v0.3.3 - Aug 18, 2026
 
 Reference-agnostic QC metrics. Additive for human and mouse: those runs are unchanged cell for cell,
@@ -149,8 +209,8 @@ Packaging release. No behaviour change: the workflow, its outputs and its number
 ## Removed
 
 - `tests/` is now two scripts and a README, with no lab-specific paths, accounts or helpers, so it can ship
-  publicly and is purely about testing the package. Gone: `tests/main.sh` (depended on `trapdebug`,
-  `mrrdir.sh`, `slurmtaco.sh` and called `cellqc` without a sample file), `tests/mwe/slurm_cellqc.sh` (a
+  publicly and is purely about testing the package. Gone: `tests/main.sh` (depended on lab-specific
+  helper scripts and called `cellqc` without a sample file), `tests/mwe/slurm_cellqc.sh` (a
   site-specific sbatch submission; the reference run is documented in `tests/README.md` instead) and
   `tests/nreaction/` (its one assertion moved into `dryrun.sh`).
   `tests/mwe/validate_nuclear_fraction.py` moved to `tests/validate_nuclear_fraction.py`.

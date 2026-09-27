@@ -1,16 +1,19 @@
 rule scdblfinder:
   input:
     "filterbycount/{sample}.h5ad",
+    upstream="filterbycount/{sample}_status.tsv",
   output:
     "scdblfinder/{sample}_metadata.txt.gz",
     "scdblfinder/{sample}_doublet_ratio.txt",
     "scdblfinder/{sample}_score.pdf",
     "scdblfinder/{sample}_score.png",
+    status="scdblfinder/{sample}_status.tsv",
   params:
     sampleid="{sample}",
     nreaction=get_nreaction,
     rate=config["doublet"]["rate"],
     capacity=config["doublet"]["capacity"],
     seed=config["seed"],
+    guard=GUARD_R,
   script:
     "../scripts/scdblfinder.R"

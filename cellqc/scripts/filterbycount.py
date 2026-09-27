@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 
-from cellqc import qcutil
+from cellqc import qcstatus, qcutil
 
 infile = snakemake.input['corrected']
 rawfile = snakemake.input['raw']
@@ -107,7 +107,7 @@ def add_raw_metrics(adata):
 	return adata
 
 
-def main():
+def main(st):
 	adata = sc.read_10x_h5(infile)
 	adata.var_names_make_unique()
 	adata.obs['sampleid'] = sampleid
@@ -284,4 +284,4 @@ def violin(adata, outfile, subtitle):
 
 
 if __name__ == '__main__':
-	main()
+	qcstatus.run(snakemake, 'filterbycount', main, requires=snakemake.input['upstream'])

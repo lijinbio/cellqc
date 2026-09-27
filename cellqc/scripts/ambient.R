@@ -24,6 +24,8 @@ method=snakemake@params[['method']]
 compare=snakemake@params[['compare']]
 seed=snakemake@params[['seed']]
 
+source(snakemake@params[['guard']])
+
 set.seed(seed)
 
 filt_h5=file.path(crdir, 'filtered_feature_bc_matrix.h5')
@@ -47,7 +49,6 @@ feature_table=function() {
 		stringsAsFactors=FALSE
 		)
 }
-features=feature_table()
 
 align_features=function(counts, keyed_by) {
 	# Return counts reordered to the canonical feature order, plus id/symbol
@@ -130,76 +131,121 @@ run_decontx=function() {
 		)
 }
 
+# The figure for a sample whose applied method failed: the slot in both reports
+# says what happened instead of showing nothing, or a stale figure.
+plot_failed=function(m, why) {
+	plot.new()
+	title(main=sprintf('%s: %s failed', sampleid, m))
+	text(0.5, 0.62, paste(strwrap(why, width=70), collapse='\n'), cex=0.75)
+	text(0.5, 0.25, 'Uncorrected Cell Ranger counts were used downstream.', cex=0.85, font=2)
+}
+
 runners=list(soupx=run_soupx, decontx=run_decontx)
 
 methods=unique(c(method, compare))
 methods=methods[methods!='none']
 
-estimates=list()
-corrected=NULL
-for (m in methods) {
-	cat(sprintf('[ambient] %s: running %s (%s)\n', sampleid, m,
-		if (m==method) 'APPLIED to counts' else 'comparison only, not applied'))
-	# Re-seed before EACH method. SoupX::adjustCounts(roundToInt=TRUE) does
-	# randomised rounding (rbinom on the fractional part), so the corrected count
-	# matrix is stochastic -- v0.1.0 seeded nothing and therefore produced a
-	# slightly different integer matrix on every run, which propagated to
-	# pct_counts_mt and flipped cells sitting near the mitochondrial threshold.
-	# Seeding per method also makes each method's result independent of which
-	# other methods run and in what order.
-	set.seed(seed)
-	estimates[[m]]=runners[[m]]()
-	if (m==method) corrected=estimates[[m]]$counts
-}
+cellqc_guard('ambient', {
+	features=feature_table()
 
-if (method=='none') {
-	corrected=align_features(counts(read10xCounts(filt_h5, col.names=TRUE)), 'id')
-	draw(function() { plot.new(); title(main=sprintf('%s: no ambient correction applied', sampleid)) })
-} else {
-	draw(estimates[[method]]$plot)
-}
+	# Each method is run on its own. A method that fails on this sample -- SoupX's
+	# autoEstCont finds no marker genes in a low-complexity channel -- is recorded
+	# and the others still run. If it is the applied method, the sample falls back
+	# to the uncorrected counts (the `none` path) rather than being lost: ambient
+	# correction improves a matrix, it is not what makes one usable.
+	estimates=list()
+	failures=list()
+	corrected=NULL
+	for (m in methods) {
+		cat(sprintf('[ambient] %s: running %s (%s)\n', sampleid, m,
+			if (m==method) 'APPLIED to counts' else 'comparison only, not applied'))
+		# Re-seed before EACH method. SoupX::adjustCounts(roundToInt=TRUE) does
+		# randomised rounding (rbinom on the fractional part), so the corrected count
+		# matrix is stochastic -- v0.1.0 seeded nothing and therefore produced a
+		# slightly different integer matrix on every run, which propagated to
+		# pct_counts_mt and flipped cells sitting near the mitochondrial threshold.
+		# Seeding per method also makes each method's result independent of which
+		# other methods run and in what order.
+		set.seed(seed)
+		est=tryCatch(runners[[m]](), error=function(e) e)
+		if (inherits(est, 'error')) {
+			failures[[m]]=cellqc_clean(conditionMessage(est))
+			cat(sprintf('[ambient] %s: %s FAILED: %s\n', sampleid, m, failures[[m]]), file=stderr())
+			if (m!=method) cellqc_substep(paste0('ambient.', m), 'failed', failures[[m]])
+			next
+		}
+		estimates[[m]]=est
+		if (m==method) corrected=est$counts
+		else cellqc_substep(paste0('ambient.', m), 'ok', 'comparison only, not applied')
+	}
 
-## ---- Write the corrected matrix --------------------------------------------
-orig=read10xCounts(filt_h5, col.names=TRUE)
-tot_before=sum(counts(orig))
-tot_after=sum(corrected)
+	# The method whose counts were actually written: `method`, or `none` after a
+	# fallback. The contamination table's `applied` column follows it.
+	applied=method
+	if (method=='none') {
+		corrected=align_features(counts(read10xCounts(filt_h5, col.names=TRUE)), 'id')
+		draw(function() { plot.new(); title(main=sprintf('%s: no ambient correction applied', sampleid)) })
+	} else if (is.null(corrected)) {
+		applied='none'
+		corrected=align_features(counts(read10xCounts(filt_h5, col.names=TRUE)), 'id')
+		draw(function() plot_failed(method, failures[[method]]))
+		cellqc_fallback(sprintf('%s failed (%s); uncorrected Cell Ranger counts used', method, failures[[method]]))
+	} else {
+		draw(estimates[[method]]$plot)
+	}
 
-write10xCounts(
-	outh5, corrected,
-	barcodes=colnames(corrected),
-	gene.id=features$gene_id,
-	gene.symbol=features$gene_symbol,
-	type='HDF5', version='3', overwrite=TRUE
-	)
+	## ---- Write the corrected matrix --------------------------------------------
+	orig=read10xCounts(filt_h5, col.names=TRUE)
+	tot_before=sum(counts(orig))
+	tot_after=sum(corrected)
 
-## ---- Contamination table ---------------------------------------------------
-# Long format, one row per method, so applied and comparison-only estimates sit
-# side by side and can never be confused for one another.
-rows=lapply(names(estimates), function(m) {
-	e=estimates[[m]]
-	data.frame(
-		sampleid=sampleid, method=m, applied=(m==method),
-		contamination_mean=mean(e$contamination),
-		contamination_median=stats::median(e$contamination),
-		contamination_min=min(e$contamination),
-		contamination_max=max(e$contamination),
-		ncell=length(e$contamination),
-		counts_before=tot_before,
-		counts_after=ifelse(m==method, tot_after, NA_real_),
-		counts_removed_frac=ifelse(m==method, (tot_before-tot_after)/tot_before, NA_real_),
+	write10xCounts(
+		outh5, corrected,
+		barcodes=colnames(corrected),
+		gene.id=features$gene_id,
+		gene.symbol=features$gene_symbol,
+		type='HDF5', version='3', overwrite=TRUE
+		)
+
+	## ---- Contamination table ---------------------------------------------------
+	# Long format, one row per method, so applied and comparison-only estimates sit
+	# side by side and can never be confused for one another. A method that failed
+	# keeps its row, with NA estimates, so a failure is a visible gap rather than a
+	# missing row; after a fallback a `none` row records what was applied instead.
+	na_row=function(m, is_applied, ncell, after) data.frame(
+		sampleid=sampleid, method=m, applied=is_applied,
+		contamination_mean=NA_real_, contamination_median=NA_real_,
+		contamination_min=NA_real_, contamination_max=NA_real_,
+		ncell=ncell, counts_before=tot_before,
+		counts_after=if (is_applied) after else NA_real_,
+		counts_removed_frac=if (is_applied) (tot_before-after)/tot_before else NA_real_,
 		stringsAsFactors=FALSE
 		)
-	})
-tab=if (length(rows)) do.call(rbind, rows) else data.frame(
-	sampleid=sampleid, method='none', applied=TRUE,
-	contamination_mean=NA_real_, contamination_median=NA_real_,
-	contamination_min=NA_real_, contamination_max=NA_real_,
-	ncell=ncol(corrected), counts_before=tot_before, counts_after=tot_after,
-	counts_removed_frac=0, stringsAsFactors=FALSE
-	)
+	rows=lapply(methods, function(m) {
+		e=estimates[[m]]
+		if (is.null(e)) return(na_row(m, FALSE, NA_integer_, NA_real_))
+		data.frame(
+			sampleid=sampleid, method=m, applied=(m==applied),
+			contamination_mean=mean(e$contamination),
+			contamination_median=stats::median(e$contamination),
+			contamination_min=min(e$contamination),
+			contamination_max=max(e$contamination),
+			ncell=length(e$contamination),
+			counts_before=tot_before,
+			counts_after=ifelse(m==applied, tot_after, NA_real_),
+			counts_removed_frac=ifelse(m==applied, (tot_before-tot_after)/tot_before, NA_real_),
+			stringsAsFactors=FALSE
+			)
+		})
+	# `method: none` with comparison methods keeps its v0.3.3 table (no `none` row);
+	# with none at all, the `none` row is the whole table, as before.
+	if (applied=='none' && (method!='none' || !length(rows)))
+		rows=c(rows, list(na_row('none', TRUE, ncol(corrected), tot_after)))
+	tab=do.call(rbind, rows)
 
-utils::write.table(tab, file=outcontam, quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
+	utils::write.table(tab, file=outcontam, quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
 
-cat(sprintf('[ambient] %s: method=%s, counts %.0f -> %.0f (%.2f%% removed), %d genes x %d cells\n',
-	sampleid, method, tot_before, tot_after,
-	100*(tot_before-tot_after)/tot_before, nrow(corrected), ncol(corrected)))
+	cat(sprintf('[ambient] %s: method=%s, counts %.0f -> %.0f (%.2f%% removed), %d genes x %d cells\n',
+		sampleid, applied, tot_before, tot_after,
+		100*(tot_before-tot_after)/tot_before, nrow(corrected), ncol(corrected)))
+})

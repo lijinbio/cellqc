@@ -4,6 +4,7 @@ rule filterbycount:
     # Cell Ranger one only supplies the pre-correction (`raw_*`) QC metrics.
     corrected="ambient/{sample}.h5",
     raw=get_filteredh5,
+    upstream="ambient/{sample}_status.tsv",
   output:
     "filterbycount/{sample}.h5ad",
     "filterbycount/{sample}_violin_before.pdf",
@@ -11,6 +12,7 @@ rule filterbycount:
     "filterbycount/{sample}_violin_after.pdf",
     "filterbycount/{sample}_violin_after.png",
     "filterbycount/{sample}_filter_ncell.txt",
+    status="filterbycount/{sample}_status.tsv",
   params:
     mincount=config["filterbycount"]["mincount"],
     minfeature=config["filterbycount"]["minfeature"],

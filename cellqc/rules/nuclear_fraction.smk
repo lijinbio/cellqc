@@ -9,6 +9,7 @@ rule nuclear_fraction:
     "nuclear_fraction/{sample}.txt.gz",
     "nuclear_fraction/{sample}_nf_umi.pdf",
     "nuclear_fraction/{sample}_nf_umi.png",
+    status="nuclear_fraction/{sample}_status.tsv",
   params:
     sampleid="{sample}",
     # The scatter is coloured by the same mitochondrial set filterbycount

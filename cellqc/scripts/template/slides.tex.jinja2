@@ -1,9 +1,10 @@
 ((# Beamer deck for a cellqc run.
 
 	Data-driven: every frame comes from a loop over the sample table or over a
-	declared figure list, so a new sample needs no edit here. A figure that does
-	not exist for a sample (e.g. no BAM -> no nuclear fraction) drops its frame
-	rather than failing the LaTeX build.
+	declared figure list, so a new sample needs no edit here. A figure that is
+	not expected for a sample (e.g. no BAM -> no nuclear fraction) drops its
+	frame; one that a failed or skipped step did not produce keeps its frame with
+	the reason instead of the image. Neither fails the LaTeX build.
 
 	Jinja is configured with LaTeX-safe delimiters -- ((* *)) for statements,
 	((( ))) for expressions -- so TeX braces are left alone.
@@ -26,17 +27,21 @@
 \usepackage{longtable}
 \usepackage[T1]{fontenc}
 
-% Shrink a box to the text width only when it is too wide -- never enlarge it.
-% Tables are built from stats files whose width depends on the data, so without
-% this a wide cohort table silently runs off the right-hand edge of the slide.
+% Shrink a box to fit the slide only when it is too big -- never enlarge it.
+% Tables are built from stats files whose size depends on the data: without the
+% width check a wide table runs off the right-hand edge, and without the height
+% check a long one runs off the bottom and takes the text under it along. The
+% height limit leaves room for a line of text below the table.
 \newsavebox{\fitbox}
 \newcommand{\fitwidth}[1]{%
 	\sbox{\fitbox}{#1}%
 	\ifdim\wd\fitbox>\linewidth
-		\resizebox{\linewidth}{!}{\usebox{\fitbox}}%
-	\else
-		\usebox{\fitbox}%
-	\fi}
+		\sbox{\fitbox}{\resizebox{\linewidth}{!}{\usebox{\fitbox}}}%
+	\fi
+	\ifdim\dimexpr\ht\fitbox+\dp\fitbox\relax>0.68\textheight
+		\sbox{\fitbox}{\resizebox*{!}{0.68\textheight}{\usebox{\fitbox}}}%
+	\fi
+	\usebox{\fitbox}}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
 
@@ -87,15 +92,44 @@
 \end{frame}
 
 ((# --- Cohort summary --------------------------------------------------- #))
-((* if cascade_table *))
-\begin{frame}{Cells retained at each stage}
+((* for cascade_table in cascade_tables *))
+\begin{frame}{Cells retained at each stage((* if cascade_tables|length > 1 *)) ((( loop.index )))/((( cascade_tables|length )))((* endif *))}
 	\centering
 	\small
 	\fitwidth{((( cascade_table )))}
 	\vspace{1em}
 	\par\footnotesize Every exclusion is the difference between two adjacent columns.
 \end{frame}
+((* endfor *))
+
+((# --- Sample status ---------------------------------------------------- #))
+\begin{frame}{Sample status}
+	\footnotesize
+	\textbf{((( nincluded )))/((( nsample )))} sample((( 's' if nsample != 1 else '' ))) reached
+	\texttt{result/}. Every step of every sample is in \texttt{result/qc\_status.csv}; a failed step
+	does not stop the run, and the other samples carry on.
+((* if excluded *))
+	\par\medskip\textbf{Excluded from \texttt{result/}}
+	\begin{itemize}\scriptsize
+((* for sid, why in excluded *))
+		\item \textbf{((( sid )))}: ((( why )))
+((* endfor *))
+	\end{itemize}
+((* else *))
+	\par\medskip No sample was excluded.
 ((* endif *))
+((* if not status_tables *))
+	\par Every step completed normally for every sample.
+((* endif *))
+\end{frame}
+
+((* for t in status_tables *))
+\begin{frame}{Steps that did not complete normally((* if status_tables|length > 1 *)) ((( loop.index )))/((( status_tables|length )))((* endif *))}
+	\centering
+	\scriptsize
+	\fitwidth{((( t )))}
+\end{frame}
+((* endfor *))
 
 ((# --- Per sample ------------------------------------------------------- #))
 ((* for s in samples *))
@@ -114,7 +148,11 @@
 	\begin{columns}[c]
 	\begin{column}{0.62\textwidth}
 		\centering
+((* if fig.path *))
 		\includegraphics[width=\linewidth,height=0.76\textheight,keepaspectratio]{((( fig.path )))}
+((* else *))
+		\fcolorbox{mut}{mut!6}{\parbox[c][0.6\textheight][c]{0.9\linewidth}{\centering\small ((( fig.note )))}}
+((* endif *))
 	\end{column}
 	\begin{column}{0.36\textwidth}
 		\footnotesize ((( fig.caption )))

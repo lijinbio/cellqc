@@ -78,6 +78,8 @@ Output (per sample, under -d|--outdir):
   result/{sample}_obs.txt.gz    .obs as a TSV, indexed by barcode
   result/{sample}_var.txt.gz    .var as a TSV, indexed by gene
   result/metrics.csv            every number the run produced, one row per sample
+  result/qc_status.csv          ok/fallback/failed/skipped for every step of every sample
+  result/manifest.tsv           which samples reached result/, and why not
   result/report.html            self-contained QC report
   result/report_slides.pdf      presentation-ready slide deck
 
@@ -90,9 +92,13 @@ Note:
      -D sample:=:S1 -D cellranger:=:/abs/path/outs -D nreaction:=:1
   3. Ambient RNA and doublet methods are chosen in the configuration file, not
      on the command line; see the README.
+  4. A sample that fails a step does not stop the run. It is recorded in
+     result/qc_status.csv, left out of result/ if the step was required, and
+     shown in both reports. The exit status is non-zero only if no sample
+     reached result/ or the run itself failed (configuration, environment).
 
 \b
-Date: 2026/08/05
+Date: 2026/09/26
 Authors: Jin Li <lijin.abc@gmail.com>
 	"""
 	nowtimestr=datetime.datetime.now().strftime('%y%m%d_%H%M%S')
@@ -134,8 +140,12 @@ Authors: Jin Li <lijin.abc@gmail.com>
 		# --use-conda is gone: v0.2.0 runs from a single environment
 		# (envs/cellqc.yaml), so there are no per-rule conda directives for it to
 		# act on and it only slowed startup.
+		# --keep-going: per-sample failures are handled inside the workflow and do
+		# not fail a job, so a job that does fail is an environment problem (killed
+		# for memory, a missing tool). The other samples' jobs still finish, so a
+		# resume does not have to redo them.
 		cmdstr+=[
-			f"--printshellcmds --skip-script-cleanup",
+			f"--printshellcmds --skip-script-cleanup --keep-going",
 			]
 		runcmd(cmdstr)
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Version
 
-The tree is **v0.3.3**. `docs/design.md` carries the design rationale and the validation results —
+The tree is **v0.3.4**. `docs/design.md` carries the design rationale and the validation results —
 read it before changing the workflow.
 
 Environment: `envs/cellqc.yaml` plus one GitHub build (DoubletFinder is not on conda).
@@ -26,8 +26,8 @@ source "$(conda info --base)/etc/profile.d/conda.sh" && conda activate cellqc_v0
 - **`SoupX::adjustCounts(roundToInt=TRUE)` is stochastic** (`rbinom` on the fractional part). Without a
   seed the corrected count matrix differs every run. Always `set.seed()` before it — this is why v0.1.0
   results were not reproducible at all, not just in the doublet step.
-- **Slurm jobs must not use the session scratchpad**: `/tmp` is node-local, so a compute node cannot see
-  it. Use a `/dfs3b` path.
+- **Cluster jobs must not write to a node-local `/tmp`**: a compute node cannot see another node's `/tmp`.
+  Use a path on the shared file system.
 - `bioconda`'s `cellbender` pins `python=3.7` and cannot share this environment.
 - **Resuming a preempted run needs `snakemake --unlock` first**, or every restart dies with
   `LockException` before doing any work, and `--rerun-incomplete` after that for the half-written output
@@ -35,6 +35,29 @@ source "$(conda info --base)/etc/profile.d/conda.sh" && conda activate cellqc_v0
   — see `tests/README.md`. `#SBATCH --requeue` did *not* resubmit preempted jobs on this cluster; they
   ended in state `PREEMPTED`. Never `rm -rf` the outdir to "start clean": that discards every completed
   stage and makes the next preemption cost the whole run again.
+
+### Per-sample failures are recorded, not fatal (v0.3.4)
+
+Every per-sample rule has a `status=` output, `{rule}/{sample}_status.tsv`, with columns
+`sample, step, status, message`, and runs its body through `qcstatus.run()` in Python or
+`cellqc_guard()` (`scripts/guard.R`, passed in as `params.guard=GUARD_R`) in R. Neither ever fails the
+job on a sample's account; they write `failed`/`skipped` plus 0-byte placeholders for the missing outputs.
+Rules to keep:
+- **A new per-sample rule needs a `status=` output, its upstream status files as an `upstream=` input,
+  and an entry in `sample_steps()`** (`common.smk`), or `qcstatus` will not see it.
+- **Keep imports and `library()` calls outside the guard.** An environment error must still stop the run.
+- **Consumers read the upstream status, never the file.** A placeholder is 0 bytes; `reportdata.computed()`
+  is the test for "a step actually wrote this".
+- **`result/` is written only by `publish`**, for the samples the `qcstatus` checkpoint includes. Do not
+  make any other rule output into `result/{sample}*`, or an excluded sample gets a placeholder there.
+  Cohort files (`qc_status.csv`, `manifest.tsv`, metrics, reports) are the exception.
+- The checkpoint's outputs must stay non-`temp`. Snakemake treats a checkpoint whose outputs are missing as
+  incomplete and reruns it every time. `postproc/`'s `temp()` outputs survive until `publish` runs only
+  because Snakemake ≥ 8 defers temp deletion while a checkpoint is pending.
+- Only the deciding doublet caller, `filterbycount`, `filterdoublet` and `postproc` exclude a sample. A
+  failed SoupX falls back to uncorrected counts (`fallback`). Do not add a "decider falls back to the
+  other caller" rule without asking; it was rejected deliberately.
+- `onsuccess` (`run_outcome()`) raises when no sample reached `result/`. That is the non-zero exit code.
 
 ### Gene sets are reference-dependent (v0.3.3)
 
@@ -54,7 +77,7 @@ plotted and recorded but **never filtered on**. Matching sees past `var_names_ma
 - DoubletFinder 1,011 (9.00%) vs scDblFinder 1,153 (10.26%), Cohen's κ = 0.759.
 - Reproducibility proven: same seed → identical matrix; seed 42 vs 7 → 1,329 counts of 91.3M differ.
 
-### Validation status (macaque, `3v4_MK_39701_papillomacular`, Mmul_10, GEM-X 3' v4, 12,386 cells)
+### Validation status (macaque retina, Mmul_10, GEM-X 3' v4, 12,386 cells)
 
 - `geneset.mt` matched 13/13 mtDNA genes by **symbol**; ribo 82 and hb 5 by pattern. The 10% mito
   threshold removed **235 cells** — under v0.3.2's `MT-`/`mt-` it would have removed 0.
@@ -77,11 +100,12 @@ cellqc -d "$outdir" -t 8 -c config.yaml -- samples.txt
 cellqc -d "$outdir" -c config.yaml $(basharr2cmdopts.sh -o -D -- "${define[@]}")  # -D sample:=:X cellranger:=:/path
 ```
 
-There is no unit-test framework or CI. `tests/` is two scripts, kept minimal and free of lab-specific
+There is no unit-test framework or CI. `tests/` is three scripts, kept minimal and free of lab-specific
 paths because it ships publicly (see `tests/README.md`):
 
 ```bash
 bash tests/dryrun.sh                                     # seconds, no data: DAG builds, outputs as promised
+bash tests/main.sh [-n] samples.tsv outdir [threads]     # real cohort run; checks failure tolerance
 python tests/validate_nuclear_fraction.py <new.txt.gz> <dropletqc_ref.txt.gz> [outdir]
 ```
 
@@ -92,10 +116,8 @@ outputs change, since that is what it asserts.
 `tests/validate_nuclear_fraction.py` is a hard gate on the pysam nuclear-fraction reimplementation against
 DropletQC; if it fails, the correct response is to revert to DropletQC, not to loosen the thresholds.
 
-The reference run (GSE188280 GSM5676874, 13,559 cells) is documented in `tests/README.md`; the lab Slurm
-submission that produced it is not in the repo. Its outputs live in
-`/dfs3b/ruic20_lab/jinl14/mrrdir/.local/github/cellqc_v020_final/out`, and the v0.1.0 comparison run in
-`.../cellqc/tests/CellQC_mwe/cellqc_outdir/`.
+The reference run (GSE188280 GSM5676874, 13,559 cells) is documented in `tests/README.md`; the cluster
+submission that produced it is not in the repo. Example outputs are in `docs/tests/`.
 
 `docs/workflow.png` is generated: `bash docs/make_figures.sh` renders it from `docs/workflow.dot`. Do not
 hand-edit the PNG — the v0.1.0 diagram went stale for a whole release because it existed only as a PNG.
@@ -126,21 +148,25 @@ cellranger outs ─┬─→ ambient (R: soupx|decontx) ─→ filterbycount (py
                  ├─→ barcoderank (py)                                  └─→ scdblfinder  (R) ─┤
                  └─→ nuclear_fraction (py, only if BAM present)                               │
                      filterdoublet (py) ←──────────────────────────────────────────────────────┘
-                       └─→ filterdoublet/{s}.h5ad ─→ postproc (py) ─→ result/{s}.h5ad
+                       └─→ filterdoublet/{s}.h5ad ─→ postproc (py) ─→ postproc/{s}.h5ad (temp)
+                     every {rule}/{s}_status.tsv ─→ qcstatus (checkpoint) ─→ result/qc_status.csv, manifest.tsv
+                       └─→ publish (hard link, included samples only) ─→ result/{s}.h5ad
                      qcreport (py) → report.html    slidereport (py→LaTeX→tectonic) → report_slides.pdf
 ```
 
 The R doublet steps write only a per-barcode metadata TSV; Python applies it. R never rewrites the matrix,
 which keeps a second serializer out of the count path.
 
-**`result/` is what a user takes away**, and the final matrix is `postproc`'s output — not an intermediate
-in a `postproc/` directory that readers mistook for a leftover. Every stage writes to `<rulename>/`; only
-the final matrix, the doublet statistics and the two reports live in `result/`. `result/{s}.h5ad` carries
+**`result/` is what a user takes away**, and the final matrix is `postproc`'s output, published by
+`publish` as a hard link. `postproc/{s}.h5ad` is `temp()`, so no leftover copy sits in `postproc/`, the
+directory readers once mistook for a leftover. Every stage writes to `<rulename>/`; only
+the final matrix, the doublet statistics (written to `filterdoublet/`, published), the status tables and
+the two reports live in `result/`. `result/{s}.h5ad` carries
 `_obs.txt.gz`/`_var.txt.gz` dumps written by `qcutil.write_obs_var`, indexed by `barcode`/`gene`, so `.obs`
 and `.var` are readable without anndata. Rules use **named** outputs (`h5ad=`, `summary=`, …) rather than
 positional indices.
 
-`filterdoublet/{s}.h5ad` is `temp()`. It is the same cells and counts as `result/{s}.h5ad`, differing only
+`filterdoublet/{s}.h5ad` is `temp()`. It has the same cells and counts as `result/{s}.h5ad`, differing only
 in the barcode prefix, unique var names and the nuclear-fraction columns, so keeping it wrote every count
 matrix to disk twice (72 MB per sample on the reference cohort). **Do not add it to `final_targets()`** —
 requesting it would stop Snakemake ever deleting it.

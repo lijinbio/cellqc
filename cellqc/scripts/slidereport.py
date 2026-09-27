@@ -7,7 +7,9 @@ new sample needs no template edit and a missing optional figure drops its frame
 instead of failing the build.
 
 Figures are embedded as the vector PDFs the analysis steps wrote, so text inside
-the figures stays selectable and editable in the deck.
+the figures stays selectable and editable in the deck. A figure that a failed or
+skipped step did not produce keeps its frame, with the reason in place of the
+image.
 """
 
 import datetime
@@ -15,6 +17,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -29,6 +32,7 @@ nf_samples = snakemake.params['nf_samples']
 callers = snakemake.params['callers']
 nowtimestr = snakemake.params['nowtimestr']
 outfile = snakemake.output[0]
+statusfile = snakemake.input['qc_status']
 
 TEMPLATE_DIR = Path(__file__).parent / 'template'
 
@@ -48,7 +52,17 @@ CASCADE_HEADERS = {
 	'after_doublet': 'After doublet',
 	'removed_by_doublet': 'Removed (doublet)',
 	'frac_retained': 'Retained',
+	'in_result': 'In result/',
 	}
+
+# Rows of the step-status table per frame, and the longest message a cell
+# shows: an R error with its call can run to hundreds of characters, and the
+# full text is in result/qc_status.csv.
+STATUS_ROWS_PER_FRAME = 12
+# Rows of the cascade table per frame: one row per sample, so a cohort of any
+# size is split across frames rather than shrunk to an unreadable size.
+CASCADE_ROWS_PER_FRAME = 12
+STATUS_MESSAGE_CHARS = 110
 
 
 def tex_escape(text):
@@ -62,6 +76,18 @@ def tex_escape(text):
 		):
 		out = out.replace(a, b)
 	return out
+
+
+# Error messages come from R and Python libraries and can carry anything --
+# curly quotes, a cli bullet, a Greek letter -- and one character the LaTeX
+# font has no glyph for fails the whole deck. They are folded to ASCII before
+# they reach the template; the untouched text is in result/qc_status.csv.
+QUOTES = str.maketrans({'\u2018': "'", '\u2019': "'", '\u201c': '"', '\u201d': '"', '\u2013': '-', '\u2014': '-'})
+
+
+def ascii_text(text):
+	text = unicodedata.normalize('NFKD', str(text).translate(QUOTES))
+	return text.encode('ascii', 'replace').decode('ascii')
 
 
 def tex_table(df, max_rows=None, headers=None, align=None):
@@ -87,7 +113,9 @@ def tex_table(df, max_rows=None, headers=None, align=None):
 	for _, row in df.iterrows():
 		vals = []
 		for v in row:
-			if isinstance(v, float):
+			if v is None or (not isinstance(v, str) and pd.isna(v)):
+				vals.append('NA')
+			elif isinstance(v, float):
 				vals.append(tex_escape(f'{v:,.4g}'))
 			else:
 				vals.append(tex_escape(v))
@@ -150,17 +178,38 @@ def figure_entries(data, sid):
 		]
 	out = []
 	for key, title, caption in spec:
-		path = figs.get(key, {}).get(sid)
-		if not path:
-			continue
-		pdf = path.format(ext='pdf')
-		if os.path.exists(pdf):
-			out.append({'title': title, 'caption': caption, 'path': os.path.abspath(pdf)})
+		pdf, why = reportdata.figure(data, key, sid, 'pdf')
+		row = reportdata.step_status(data, sid, reportdata.FIGURE_STEP.get(key, key))
+		if row is not None and row['status'] == 'fallback':
+			caption = tex_escape(ascii_text(f"FALLBACK: {row['message']}."))
+		if pdf:
+			out.append({'title': title, 'caption': caption, 'path': os.path.abspath(pdf), 'note': None})
+		elif why:
+			out.append({'title': title, 'caption': caption, 'path': None,
+				'note': tex_escape(ascii_text(f'{title} not available: {why}'))})
 	return out
 
 
+def paged(df, rows, **kw):
+	"""`df` as a list of tex tables of at most `rows` rows each, one per frame."""
+	if df is None or not len(df):
+		return []
+	return [tex_table(df.iloc[i:i + rows], **kw) for i in range(0, len(df), rows)]
+
+
+def status_frames(data):
+	"""The steps that did not complete normally, split into slide-sized tables."""
+	bad = data['problems']
+	if bad is None:
+		return []
+	bad = bad[['sample', 'step', 'status', 'message']].copy()
+	cut = STATUS_MESSAGE_CHARS
+	bad['message'] = [ascii_text(m if len(m) <= cut else m[:cut - 3] + '...') for m in bad['message']]
+	return paged(bad, STATUS_ROWS_PER_FRAME, align='lllp{0.55\\linewidth}')
+
+
 def main():
-	data = reportdata.collect(samples, sampledir, config, nf_samples, callers)
+	data = reportdata.collect(samples, sampledir, config, nf_samples, callers, statusfile)
 
 	env = Environment(
 		loader=FileSystemLoader(str(TEMPLATE_DIR)),
@@ -201,9 +250,12 @@ def main():
 		cfg_mito=config['filterbycount']['mito'],
 		cfg_rate=config['doublet']['rate'],
 		cfg_capacity=config['doublet']['capacity'],
-		cascade_table=tex_table(data['cascade'], headers=CASCADE_HEADERS),
+		cascade_tables=paged(data['cascade'], CASCADE_ROWS_PER_FRAME, headers=CASCADE_HEADERS),
+		nincluded=len(data['included']),
+		excluded=[(tex_escape(s), tex_escape(ascii_text(why))) for s, why in data['excluded'].items()],
+		status_tables=status_frames(data),
 		samples=per_sample,
-		caveats=[tex_escape(c) for c in data['caveats']],
+		caveats=[tex_escape(ascii_text(c)) for c in data['caveats']],
 		)
 
 	outpath = Path(outfile).resolve()

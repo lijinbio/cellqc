@@ -1,6 +1,7 @@
 rule doubletfinder:
   input:
     "filterbycount/{sample}.h5ad",
+    upstream="filterbycount/{sample}_status.tsv",
   output:
     "doubletfinder/{sample}_metadata.txt.gz",
     "doubletfinder/{sample}_doublet_ratio.txt",
@@ -8,6 +9,7 @@ rule doubletfinder:
     "doubletfinder/{sample}_pANN.png",
     "doubletfinder/{sample}_umap.pdf",
     "doubletfinder/{sample}_umap.png",
+    status="doubletfinder/{sample}_status.tsv",
   params:
     sampleid="{sample}",
     findpK=config["doublet"]["findpK"],
@@ -16,6 +18,7 @@ rule doubletfinder:
     rate=config["doublet"]["rate"],
     capacity=config["doublet"]["capacity"],
     seed=config["seed"],
+    guard=GUARD_R,
   threads:
     config["doublet"]["numthreads"]
   script:

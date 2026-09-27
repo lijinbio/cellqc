@@ -1,5 +1,8 @@
 from snakemake.utils import min_version
-min_version("7.0")
+# 8: envs/cellqc.yaml's floor, and the version the qcstatus checkpoint was
+# written against -- temp() outputs are kept until every pending checkpoint has
+# run, which is what lets postproc's temp() matrix wait for `publish`.
+min_version("8.0")
 
 include: "rules/config.smk"
 include: "rules/common.smk"
@@ -7,6 +10,7 @@ include: "rules/common.smk"
 rule all:
   input:
     final_targets(),
+    published_targets,
 
 include: "rules/ambient.smk"
 include: "rules/barcoderank.smk"
@@ -23,5 +27,12 @@ include: "rules/scdblfinder.smk"
 
 include: "rules/filterdoublet.smk"
 include: "rules/postproc.smk"
+# Resolves per-sample, per-step status into result/qc_status.csv and decides
+# which samples are published to result/. Nothing before it fails the run on a
+# sample's account.
+include: "rules/qcstatus.smk"
 include: "rules/qcreport.smk"
 include: "rules/slidereport.smk"
+
+onsuccess:
+  run_outcome()

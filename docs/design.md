@@ -127,7 +127,7 @@ CellBender is the expensive one, and the cost is structural, not just compute:
    re-opens what goal 1 closes.
 2. It pulls **pytorch** into the environment (~2–3 GB), against goal 2's "one simple env". Mitigation:
    isolate it with a Snakemake per-rule `conda:` directive so the base install stays light.
-3. It wants a **GPU** and hours per sample. Feasible here (`free-gpu` / `ruic20_lab_gpu`), but it makes the
+3. It wants a **GPU** and hours per sample. Feasible on a GPU cluster, but it makes the
    pipeline no longer runnable end-to-end on CPU, which is a real change in what cellqc is.
 4. Its `--expected-cells` / `--total-droplets-included` need per-sample judgement; wrong values degrade
    results quietly. That conflicts with the "runs on a new sample without hand-tuning" property (goal 3.2).
@@ -377,7 +377,7 @@ v0.1.0 outputs for this sample already exist in `cellqc_outdir/`, so every stage
 | result `.h5ad` | dims, dtypes, `.obs` columns, no NaN in `pANN`/`nuclear_fraction`, X is integer counts |
 | Reports | HTML renders; PDF compiles; text selectable in the PDF |
 
-Slurm: `--partition=free --account=ruic20_lab`, `--requeue` with automatic resubmission on preemption.
+Cluster runs: resubmit automatically on preemption.
 The BAM pass is the expensive step (~15 GB, ~233M reads); it gets its own job with the thread count from config.
 The submission script is kept in `tests/CellQC_mwe/` for the record.
 
@@ -463,3 +463,44 @@ End to end on that sample (12,386 called cells, GEM-X 3' v4): 12,386 → 12,081 
 v0.3.2 that criterion removed nothing at all on this reference, because `pct_counts_mt` was 0 everywhere.
 That is the size of the bug this section fixes, and it is invisible without the `matched_by` column: the
 v0.3.2 run produced a complete report with a mitochondrial violin, a threshold line, and no error.
+
+## 10. Per-sample failure tolerance — added in v0.3.4
+
+**Problem.** A cohort run was all-or-nothing. Low-quality libraries fail in predictable ways. SoupX's
+`autoEstCont` finds no plausible marker genes in a low-complexity channel, and DoubletFinder cannot build
+a UMAP when filtering leaves only a handful of cells. Either failure killed the run for every sample, and
+it was found only by reading a Snakemake log.
+
+**Mechanism.** Every per-sample step writes a status file (`ok | fallback | failed | skipped`) and always
+exits 0 on a sample's account. The status is the contract between steps: a consumer checks its required
+upstream statuses before touching their outputs, and skips with the upstream reason if one is unusable.
+The skip message is the upstream's own reason, so the root cause reaches the end of the chain intact. One
+implementation per language (`cellqc/qcstatus.py`, `scripts/guard.R`) rather than a `try` per script: the
+behaviour, the file format and the placeholder rule are identical everywhere, and a new step gets them by
+calling one function. Imports and `library()` stay outside the guard on purpose. A missing package fails
+every sample identically, and recording it once per sample as a data problem would hide the real cause.
+
+**Why placeholders.** Snakemake cannot express an optional output, and changing the DAG per sample would
+put checkpoints everywhere. A failed step leaves 0-byte files for its declared outputs, and nothing reads a
+file without reading its producer's status first. The one place where a placeholder would do harm is
+`result/`, the directory a user globs. So there is a single `qcstatus` checkpoint, and `publish` hard-links
+only the included samples' matrices there. The checkpoint's outputs are the two status tables, which are
+never `temp`, since Snakemake would rerun a checkpoint whose outputs are missing.
+
+**Which failures exclude a sample.** A sample is excluded when a step is missing without which the matrix
+is not QC'd: filtering, the deciding doublet caller, the doublet removal itself, the final write. Diagnostic
+steps (barcode rank, nuclear fraction, a non-deciding caller, a comparison ambient estimate) are recorded
+and never exclude.
+
+**Fallbacks.** Only one was adopted. When the applied ambient method fails, the uncorrected counts are
+used: ambient correction improves a matrix, it is not what makes one usable, and `method: none` is already
+a supported configuration, so the fallback produces a matrix the pipeline knows how to describe. The
+contamination table records both the failed method (NA) and the `none` that was applied. *Rejected:*
+letting scDblFinder decide when DoubletFinder fails. It would make that sample's doublet removal differ in
+method and in prior from every other sample's while looking the same in `result/`. Exclusion is visible;
+a silent method switch is not.
+
+**Exit status.** Success needs at least one sample in `result/`. A run that produces no matrix has not done
+its job even if every failure was handled, so `onsuccess` raises. Errors that are not about a sample
+(configuration, missing inputs, environment, a deck that will not compile) fail the run as before. Missing
+Cell Ranger matrices are now checked at DAG construction, before any compute.

@@ -30,108 +30,112 @@ capacity=as.numeric(snakemake@params[['capacity']])
 seed=as.integer(snakemake@params[['seed']])
 numthreads=as.integer(snakemake@threads)
 
-# v0.1.0 seeded nothing: RunPCA/RunUMAP and DoubletFinder's artificial-doublet
-# sampling are all stochastic, so repeat runs gave different calls.
-set.seed(seed)
+source(snakemake@params[['guard']])
 
-sce=readH5AD(infile, reader='R', verbose=FALSE)
-# zellkonverter names the main assay 'X'; Seurat and scDblFinder both expect
-# 'counts'. Normalise the name once, here.
-if (!'counts' %in% assayNames(sce)) {
-	assayNames(sce)[assayNames(sce)=='X']='counts'
-}
-stopifnot('counts' %in% assayNames(sce))
+cellqc_guard('doubletfinder', requires=snakemake@input[['upstream']], {
+	# v0.1.0 seeded nothing: RunPCA/RunUMAP and DoubletFinder's artificial-doublet
+	# sampling are all stochastic, so repeat runs gave different calls.
+	set.seed(seed)
 
-x=CreateSeuratObject(counts=assay(sce, 'counts'), meta.data=as.data.frame(colData(sce)))
-cat(sprintf('[doubletfinder] %s: %d genes x %d cells\n', sampleid, nrow(x), ncol(x)))
+	sce=readH5AD(infile, reader='R', verbose=FALSE)
+	# zellkonverter names the main assay 'X'; Seurat and scDblFinder both expect
+	# 'counts'. Normalise the name once, here.
+	if (!'counts' %in% assayNames(sce)) {
+		assayNames(sce)[assayNames(sce)=='X']='counts'
+	}
+	stopifnot('counts' %in% assayNames(sce))
 
-npc=min(30, ncol(x)-1)
-x=NormalizeData(x, verbose=FALSE)
-x=FindVariableFeatures(x, selection.method='vst', nfeatures=2000, verbose=FALSE)
-x=ScaleData(x, verbose=FALSE)
-x=RunPCA(x, npcs=npc, verbose=FALSE, seed.use=seed)
-x=RunUMAP(x, dims=1:npc, verbose=FALSE, seed.use=seed)
+	x=CreateSeuratObject(counts=assay(sce, 'counts'), meta.data=as.data.frame(colData(sce)))
+	cat(sprintf('[doubletfinder] %s: %d genes x %d cells\n', sampleid, nrow(x), ncol(x)))
 
-## ---- pK --------------------------------------------------------------------
-if (isTRUE(findpK)) {
-	sweepx=paramSweep(x, PCs=1:10, sct=FALSE, num.cores=numthreads)
-	sweepstats=summarizeSweep(sweepx, GT=FALSE)
-	bcmetric=find.pK(sweepstats)
-	utils::write.table(bcmetric, file=gzfile(sub('_metadata.txt.gz$', '_findpK.txt.gz', outmeta)),
-		quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
-	bcmetric$pK=as.numeric(levels(bcmetric$pK))[bcmetric$pK]
-	pKopt=bcmetric$pK[which.max(bcmetric[, 'BCmetric'])]
-	cat(sprintf('[doubletfinder] %s: estimated pK=%g\n', sampleid, pKopt))
-} else {
-	pKopt=pK
-	cat(sprintf('[doubletfinder] %s: using preset pK=%g\n', sampleid, pKopt))
-}
+	npc=min(30, ncol(x)-1)
+	x=NormalizeData(x, verbose=FALSE)
+	x=FindVariableFeatures(x, selection.method='vst', nfeatures=2000, verbose=FALSE)
+	x=ScaleData(x, verbose=FALSE)
+	x=RunPCA(x, npcs=npc, verbose=FALSE, seed.use=seed)
+	x=RunUMAP(x, dims=1:npc, verbose=FALSE, seed.use=seed)
 
-## ---- Expected doublets -----------------------------------------------------
-# 10x multiplet rule of thumb, unchanged from v0.1.0 but with the two constants
-# now configurable. NOT adjusted for homotypic doublets (modelHomotypic is
-# deliberately not called), so nExp over-estimates the DETECTABLE doublet count
-# and this step removes somewhat more cells than the true heterotypic count.
-# The bias direction is known, constant, and reported.
-ncell=ncol(x)
-doubletratio=round(rate*ncell/(nreaction*capacity), digits=2)
-nExp=as.integer(round(doubletratio*ncell))
-cat(sprintf('[doubletfinder] %s: expected doublet rate %.3f of %d cells -> nExp=%d (homotypic NOT modelled)\n',
-	sampleid, doubletratio, ncell, nExp))
+	## ---- pK --------------------------------------------------------------------
+	if (isTRUE(findpK)) {
+		sweepx=paramSweep(x, PCs=1:10, sct=FALSE, num.cores=numthreads)
+		sweepstats=summarizeSweep(sweepx, GT=FALSE)
+		bcmetric=find.pK(sweepstats)
+		utils::write.table(bcmetric, file=gzfile(sub('_metadata.txt.gz$', '_findpK.txt.gz', outmeta)),
+			quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
+		bcmetric$pK=as.numeric(levels(bcmetric$pK))[bcmetric$pK]
+		pKopt=bcmetric$pK[which.max(bcmetric[, 'BCmetric'])]
+		cat(sprintf('[doubletfinder] %s: estimated pK=%g\n', sampleid, pKopt))
+	} else {
+		pKopt=pK
+		cat(sprintf('[doubletfinder] %s: using preset pK=%g\n', sampleid, pKopt))
+	}
 
-# reuse.pANN must be NULL, not FALSE. Upstream v2.0.6 switched this check from
-# `if (reuse.pANN)` to `if (!is.null(reuse.pANN))`, so the FALSE that v0.1.0
-# passed now takes the reuse branch and fails with "cannot xtfrm data frames".
-res=doubletFinder(x, PCs=1:10, pN=0.25, pK=pKopt, nExp=nExp, reuse.pANN=NULL, sct=FALSE)
+	## ---- Expected doublets -----------------------------------------------------
+	# 10x multiplet rule of thumb, unchanged from v0.1.0 but with the two constants
+	# now configurable. NOT adjusted for homotypic doublets (modelHomotypic is
+	# deliberately not called), so nExp over-estimates the DETECTABLE doublet count
+	# and this step removes somewhat more cells than the true heterotypic count.
+	# The bias direction is known, constant, and reported.
+	ncell=ncol(x)
+	doubletratio=round(rate*ncell/(nreaction*capacity), digits=2)
+	nExp=as.integer(round(doubletratio*ncell))
+	cat(sprintf('[doubletfinder] %s: expected doublet rate %.3f of %d cells -> nExp=%d (homotypic NOT modelled)\n',
+		sampleid, doubletratio, ncell, nExp))
 
-meta=res@meta.data
-scorecol=grep('^pANN_', names(meta), value=TRUE)[1]
-classcol=grep('^DF.classifications_', names(meta), value=TRUE)[1]
-stopifnot(!is.na(scorecol), !is.na(classcol))
+	# reuse.pANN must be NULL, not FALSE. Upstream v2.0.6 switched this check from
+	# `if (reuse.pANN)` to `if (!is.null(reuse.pANN))`, so the FALSE that v0.1.0
+	# passed now takes the reuse branch and fails with "cannot xtfrm data frames".
+	res=doubletFinder(x, PCs=1:10, pN=0.25, pK=pKopt, nExp=nExp, reuse.pANN=NULL, sct=FALSE)
 
-out=data.frame(
-	barcode=rownames(meta),
-	doubletfinder_pANN=meta[[scorecol]],
-	doubletfinder_class=as.character(meta[[classcol]]),
-	stringsAsFactors=FALSE
-	)
-utils::write.table(out, file=gzfile(outmeta), quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
+	meta=res@meta.data
+	scorecol=grep('^pANN_', names(meta), value=TRUE)[1]
+	classcol=grep('^DF.classifications_', names(meta), value=TRUE)[1]
+	stopifnot(!is.na(scorecol), !is.na(classcol))
 
-ndoublet=sum(out$doubletfinder_class=='Doublet')
-utils::write.table(
-	data.frame(
-		sampleid=sampleid, caller='doubletfinder', pK=pKopt, nreaction=nreaction,
-		rate=rate, capacity=capacity, doubletratio=doubletratio,
-		ncell_before=ncell, nExp=nExp, ndoublet=ndoublet, ncell_after=ncell-ndoublet,
-		homotypic_modelled=FALSE
-		),
-	file=outratio, quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE
-	)
+	out=data.frame(
+		barcode=rownames(meta),
+		doubletfinder_pANN=meta[[scorecol]],
+		doubletfinder_class=as.character(meta[[classcol]]),
+		stringsAsFactors=FALSE
+		)
+	utils::write.table(out, file=gzfile(outmeta), quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
 
-## ---- Figures ---------------------------------------------------------------
-res$pANN=out$doubletfinder_pANN
-res$DF_class=factor(out$doubletfinder_class, levels=c('Singlet', 'Doublet'))
+	ndoublet=sum(out$doubletfinder_class=='Doublet')
+	utils::write.table(
+		data.frame(
+			sampleid=sampleid, caller='doubletfinder', pK=pKopt, nreaction=nreaction,
+			rate=rate, capacity=capacity, doubletratio=doubletratio,
+			ncell_before=ncell, nExp=nExp, ndoublet=ndoublet, ncell_after=ncell-ndoublet,
+			homotypic_modelled=FALSE
+			),
+		file=outratio, quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE
+		)
 
-theme_cellqc=theme_bw()+theme(
-	plot.background=element_blank(), panel.grid.minor=element_blank(),
-	panel.border=element_blank(), plot.title=element_text(hjust=0.5, size=10),
-	axis.line=element_line(color='black'), axis.text=element_text(color='black')
-	)
+	## ---- Figures ---------------------------------------------------------------
+	res$pANN=out$doubletfinder_pANN
+	res$DF_class=factor(out$doubletfinder_class, levels=c('Singlet', 'Doublet'))
 
-pdat=data.frame(pANN=res$pANN, class=res$DF_class)
-p=ggplot(pdat, aes(x=class, y=pANN, fill=class))+
-	geom_violin(trim=TRUE, show.legend=FALSE)+
-	geom_boxplot(width=0.1, fill='white', outlier.shape=NA)+
-	scale_fill_manual(values=c(Singlet='#4c72b0', Doublet='#c44e52'))+
-	labs(x=NULL, y='pANN', title=sprintf('%s: pANN by classification (pK=%g)', sampleid, pKopt))+
-	theme_cellqc
-ggsave(p, file=outpann_pdf, width=4.5, height=4, units='in', device=cairo_pdf)
-ggsave(p, file=outpann_png, width=4.5, height=4, units='in', dpi=300)
+	theme_cellqc=theme_bw()+theme(
+		plot.background=element_blank(), panel.grid.minor=element_blank(),
+		panel.border=element_blank(), plot.title=element_text(hjust=0.5, size=10),
+		axis.line=element_line(color='black'), axis.text=element_text(color='black')
+		)
 
-p=DimPlot(res, reduction='umap', group.by='DF_class', cols=c(Singlet='#4c72b0', Doublet='#c44e52'))+
-	labs(title=sprintf('%s: DoubletFinder calls', sampleid))+theme_cellqc
-ggsave(p, file=outumap_pdf, width=5, height=4.2, units='in', device=cairo_pdf)
-ggsave(p, file=outumap_png, width=5, height=4.2, units='in', dpi=300)
+	pdat=data.frame(pANN=res$pANN, class=res$DF_class)
+	p=ggplot(pdat, aes(x=class, y=pANN, fill=class))+
+		geom_violin(trim=TRUE, show.legend=FALSE)+
+		geom_boxplot(width=0.1, fill='white', outlier.shape=NA)+
+		scale_fill_manual(values=c(Singlet='#4c72b0', Doublet='#c44e52'))+
+		labs(x=NULL, y='pANN', title=sprintf('%s: pANN by classification (pK=%g)', sampleid, pKopt))+
+		theme_cellqc
+	ggsave(p, file=outpann_pdf, width=4.5, height=4, units='in', device=cairo_pdf)
+	ggsave(p, file=outpann_png, width=4.5, height=4, units='in', dpi=300)
 
-cat(sprintf('[doubletfinder] %s: %d/%d cells called doublet (%.2f%%)\n',
-	sampleid, ndoublet, ncell, 100*ndoublet/ncell))
+	p=DimPlot(res, reduction='umap', group.by='DF_class', cols=c(Singlet='#4c72b0', Doublet='#c44e52'))+
+		labs(title=sprintf('%s: DoubletFinder calls', sampleid))+theme_cellqc
+	ggsave(p, file=outumap_pdf, width=5, height=4.2, units='in', device=cairo_pdf)
+	ggsave(p, file=outumap_png, width=5, height=4.2, units='in', dpi=300)
+
+	cat(sprintf('[doubletfinder] %s: %d/%d cells called doublet (%.2f%%)\n',
+		sampleid, ndoublet, ncell, 100*ndoublet/ncell))
+})

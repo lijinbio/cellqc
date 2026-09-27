@@ -20,6 +20,32 @@
       </p>
     </div>
 
+    <div class="result">
+      <div class="heading"><h1>Sample status</h1></div>
+      <p class="blurb">
+        {{ nincluded }} of {{ nsample }} sample{{ 's' if nsample != 1 }} reached <code>result/</code>.
+        Every step of every sample &mdash; <code>ok</code>, <code>fallback</code>, <code>failed</code> or
+        <code>skipped</code> &mdash; is in <a href="qc_status.csv"><code>qc_status.csv</code></a>
+        next to this report; the per-sample verdict is in <a href="manifest.tsv"><code>manifest.tsv</code></a>.
+        A failed step does not stop the run: its sample carries on as far as it can, and the
+        tables below keep every sample, with NA for what was not computed.
+      </p>
+      {% if excluded %}
+      <div class="heading"><h2>Excluded from result/</h2></div>
+      <ul>
+      {% for sid, why in excluded.items() %}
+        <li><strong>{{ sid }}</strong>: {{ why }}</li>
+      {% endfor %}
+      </ul>
+      {% endif %}
+      {% if problems is not none %}
+      <div class="heading"><h2>Steps that did not complete normally</h2></div>
+      <div class="outer-wrapper"><div class="table-wrapper">{{ problems }}</div></div>
+      {% else %}
+      <p class="blurb">Every step completed normally for every sample.</p>
+      {% endif %}
+    </div>
+
     {% if cascade is not none %}
     <div class="result">
       <div class="heading"><h1>Cells retained at each stage</h1></div>
@@ -86,12 +112,17 @@
     <div class="result">
       <div class="heading"><h1>{{ section.title }}</h1></div>
       {% if section.blurb %}<p class="blurb">{{ section.blurb }}</p>{% endif %}
-      {% for sid, datauri in section.images %}
+      {% for sid, datauri, note in section.images %}
       <div class="png">
         <div class="heading"><h2>{{ sid }}</h2></div>
+        {% if datauri %}
         <div class="img-wrapper">
           <img src="{{ datauri }}" title="{{ sid }}" width="100%">
         </div>
+        {% if note %}<p class="blurb" style="max-width: 400px"><strong>{{ note }}</strong></p>{% endif %}
+        {% else %}
+        <div class="placeholder">{{ note }}</div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>

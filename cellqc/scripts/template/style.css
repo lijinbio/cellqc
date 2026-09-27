@@ -123,3 +123,20 @@ code {
 	background: #f0f0f0;
 	padding: 0 2px;
 }
+/* v0.3.4: the slot of a figure a failed or skipped step did not produce */
+div.placeholder {
+	box-sizing: border-box;
+	width: 420px;
+	height: 420px;
+	padding: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	font-size: 11px;
+	line-height: 1.5;
+	color: #7a2e30;
+	background: #f7f0f0;
+	border: 1px dashed #c44e52;
+	overflow-wrap: anywhere;
+}

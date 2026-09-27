@@ -285,19 +285,53 @@ the true heterotypic count. The bias direction is known, constant, and stated in
 |---|---|
 | `result/{sample}.h5ad` | **The final matrix.** QC'd counts prepared for integration: sample-prefixed barcodes, unique var names, no `raw` layer, nuclear fraction attached when available. `.obs` carries the QC metrics on the corrected counts (`total_counts`, …) and their pre-correction counterparts (`raw_total_counts`, …), plus every doublet caller's score/class; `.uns` records which caller decided removal. |
 | `result/{sample}_obs.txt.gz`, `result/{sample}_var.txt.gz` | `.obs` and `.var` as gzipped TSVs, indexed by `barcode` and `gene`. Everything the matrix knows about each cell and each feature, readable without anndata. |
-| `result/metrics.csv` | Every scalar the run produced, one row per sample: Cell Ranger metrics, knee/inflection, ambient contamination per method, per-criterion filter counts, each doublet caller's count and their concordance, nuclear-fraction quartiles, and the retained fraction. Assembled from the same collected data as the reports, so it cannot disagree with them — join on `sampleid` instead of scraping a number out of the HTML. |
+| `result/metrics.csv` | Every scalar the run produced, one row per sample: Cell Ranger metrics, knee/inflection, ambient contamination per method, per-criterion filter counts, each doublet caller's count and their concordance, nuclear-fraction quartiles, and the retained fraction. Assembled from the same collected data as the reports, so it cannot disagree with them — join on `sampleid` instead of scraping a number out of the HTML. **Every sample has a row, including one that failed a step**: what was not computed is `NA`. The last columns are `status_<step>` for each step, `qc_included` and `qc_excluded_reason`. |
+| `result/qc_status.csv` | `sample, step, status, message` for every step of every sample. `status` is `ok`, `fallback` (completed on a substitute, e.g. uncorrected counts after SoupX failed), `failed` (the message is the error) or `skipped` (a step it needs was unusable; the message carries that step's reason). A final `result` row per sample says whether it reached `result/`. |
+| `result/manifest.tsv` | One row per sample: `included`, final `ncell`, and for an excluded sample the `reason`; `fallback` lists any substitutions. |
 | `result/report.html` | Self-contained HTML QC report; all figures inlined. |
 | `result/report_slides.pdf` | Presentation-ready beamer deck: Cell Ranger metrics, barcode rank, ambient RNA, QC violins, nuclear fraction, doublet calls, and a limitations slide. |
 
 Per-stage outputs (`ambient/`, `barcoderank/`, `nuclear_fraction/`, `filterbycount/`, `doubletfinder/`,
-`scdblfinder/`) keep the statistics tables and figures. Every figure is written as a vector PDF with
+`scdblfinder/`, `filterdoublet/`) keep the statistics tables and figures, plus a
+`{stage}/{sample}_status.tsv` each. Every figure is written as a vector PDF with
 editable text alongside a 300 dpi PNG for the HTML report.
 
 The intermediate matrices (`filterbycount/{sample}.h5ad`, `filterdoublet/{sample}.h5ad`) are working files.
-`filterdoublet/`'s is marked `temp` and deleted once `result/{sample}.h5ad` is written: it held the same
+`filterdoublet/`'s is marked `temp` and deleted once the final matrix is written: it held the same
 cells and the same counts, differing only in the barcode prefix and the nuclear-fraction columns, so
 keeping it wrote every count matrix to disk twice. To keep it, run the workflow through Snakemake directly
-with `--notemp` — the `cellqc` CLI does not pass Snakemake flags through.
+with `--notemp` — the `cellqc` CLI does not pass Snakemake flags through. The final matrix itself is
+written to `postproc/` (also `temp`) and hard-linked into `result/`, so it exists on disk once.
+
+### When a sample fails a step
+
+One sample failing one step does not stop the run. Every per-sample step records its outcome in
+`{stage}/{sample}_status.tsv` and never fails the Snakemake job on a sample's account; the sample goes as
+far as it can, and the other samples are unaffected.
+
+| Step fails | What happens to that sample |
+|---|---|
+| `ambient` (the applied method, e.g. SoupX) | **Fallback**: the uncorrected Cell Ranger counts are used, and the sample continues. The contamination table keeps a row for the failed method with `NA` estimates and adds a `none` row for what was applied; the figure says the method failed and why. |
+| `ambient` comparison method (`compare`) | Recorded as `ambient.<method>: failed`; nothing else changes — it never touched the counts. |
+| `barcoderank`, `nuclear_fraction` | Recorded; both are diagnostic. The final matrix is written without the nuclear fraction. |
+| `filterbycount` (e.g. every cell removed) | Doublet detection, `filterdoublet` and `postproc` are skipped; **excluded from `result/`**. |
+| the doublet `decider` | **Excluded from `result/`**. The other caller does not take over: that would make one sample's doublet removal differ in method from the rest of the cohort. |
+| a non-deciding doublet caller | Recorded; the decider alone decides, and that caller's metrics and the concordance are `NA`. |
+| `filterdoublet`, `postproc` | **Excluded from `result/`**. |
+
+A failed or skipped step still leaves each of its declared outputs, as a 0-byte placeholder, so the DAG
+never changes shape; downstream steps read the status, not the file, and nothing that stands in for a matrix
+reaches `result/`. The `qcstatus` checkpoint collects the statuses into `result/qc_status.csv` and
+`result/manifest.tsv` and publishes only the samples that made it through. Both reports carry a *Sample
+status* section, keep every sample in every table, and show the reason in place of any figure that was not
+produced.
+
+`cellqc` exits 0 when at least one sample reaches `result/`, logging each excluded sample and why. It exits
+non-zero when none does, and on anything that is not about one sample — a bad configuration, a missing Cell
+Ranger directory, a missing R package, a report that will not compile — which still stops the run.
+
+To retry a failed step after fixing its cause, delete that step's status file: Snakemake then re-runs it and
+everything downstream of it for that sample.
 
 ### An example
 

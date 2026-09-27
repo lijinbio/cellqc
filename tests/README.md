@@ -1,6 +1,6 @@
 # tests
 
-Two scripts, no framework, no test data in the repository.
+Three scripts, no framework, no test data in the repository.
 
 ## `dryrun.sh` — smoke test
 
@@ -8,19 +8,33 @@ Two scripts, no framework, no test data in the repository.
 bash tests/dryrun.sh
 ```
 
-Builds stub Cell Ranger directories, runs `cellqc -n` over them, and checks that the workflow still
-produces what it promises: the final matrix and its `.obs`/`.var` dumps, the pre-integration matrix, both
-reports, the nuclear fraction only for the sample that has a BAM, a rejected obsolete config key, the
-`nreaction` scaling of the expected doublet rate (including its config-level default, for a sample file
-with no `nreaction` column), and the QC gene sets — human and mouse matched by pattern, macaque by the
-bare-symbol fallback, with `RPS6KA1`/`RPS19BP1`/`HBEGF`/`HBP1`/`HBS1L` staying out of their look-alike
-sets, one set redefinable without disturbing the others, and an emptied `geneset.mt` rejected. It also
-compares the dumped `config_<timestamp>.yaml` against `qcutil.GENE_SETS`, the second copy of the same
-defaults, so the two cannot drift apart unnoticed. Seconds, no cluster, no data — `--dry-run` only needs
-the input paths to exist. Prints `PASS`/`FAIL` and exits non-zero on failure.
+Builds two stub Cell Ranger directories, one with a BAM, runs `cellqc -n` over them, and checks that:
+- the DAG builds;
+- the cohort outputs are promised (status tables, metrics, both reports);
+- every per-sample step writes a status file;
+- the nuclear fraction runs only for the sample with a BAM;
+- the gene-set defaults in `config.smk` and `qcutil.GENE_SETS` agree;
+- a removed config key is rejected.
 
-Run it after changing `rules/config.smk`, the schema, `Snakefile`, any rule's outputs, or
-`qcutil.GENE_SETS`.
+Seconds, no data. Run it after changing `rules/`, the schema, `Snakefile` or `qcutil.GENE_SETS`.
+
+## `main.sh` — failure tolerance on a real cohort
+
+```bash
+bash tests/main.sh -n samples.tsv out   # dry run
+bash tests/main.sh samples.tsv out 32   # run; the same command resumes
+```
+
+Runs a whole cohort with snRNA-seq settings, which `main.sh` writes to `out/config.yaml`. The sample sheet
+needs `sample` and `cellranger` columns; `sampleid` and `cellranger_dir` are accepted too. Use a cohort
+that includes low-quality libraries: ones where SoupX finds no marker genes, or where filtering leaves too
+few cells for doublet detection. Before v0.3.4 either failure stopped the run for every sample. Pass
+criteria:
+- the run exits 0;
+- the failing samples are absent from `result/` and listed with a reason in `result/manifest.tsv` and
+  `result/qc_status.csv`;
+- `result/metrics.csv` has one row per sample, with `NA` for what was not computed;
+- both reports render, with a *Sample status* section and a placeholder in place of each missing figure.
 
 ## `validate_nuclear_fraction.py` — acceptance gate
 

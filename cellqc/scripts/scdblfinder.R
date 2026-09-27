@@ -25,59 +25,63 @@ rate=as.numeric(snakemake@params[['rate']])
 capacity=as.numeric(snakemake@params[['capacity']])
 seed=as.integer(snakemake@params[['seed']])
 
-set.seed(seed)
+source(snakemake@params[['guard']])
 
-sce=readH5AD(infile, reader='R', verbose=FALSE)
-# scDblFinder's .checkSCE() hard-requires an assay literally named 'counts';
-# zellkonverter calls it 'X'.
-if (!'counts' %in% assayNames(sce)) {
-	assayNames(sce)[assayNames(sce)=='X']='counts'
-}
-stopifnot('counts' %in% assayNames(sce))
+cellqc_guard('scdblfinder', requires=snakemake@input[['upstream']], {
+	set.seed(seed)
 
-ncell=ncol(sce)
-dbr=rate*ncell/(nreaction*capacity)
-cat(sprintf('[scdblfinder] %s: %d genes x %d cells, dbr=%.4f (matched to DoubletFinder)\n',
-	sampleid, nrow(sce), ncell, dbr))
+	sce=readH5AD(infile, reader='R', verbose=FALSE)
+	# scDblFinder's .checkSCE() hard-requires an assay literally named 'counts';
+	# zellkonverter calls it 'X'.
+	if (!'counts' %in% assayNames(sce)) {
+		assayNames(sce)[assayNames(sce)=='X']='counts'
+	}
+	stopifnot('counts' %in% assayNames(sce))
 
-res=scDblFinder(sce, dbr=dbr, verbose=FALSE)
+	ncell=ncol(sce)
+	dbr=rate*ncell/(nreaction*capacity)
+	cat(sprintf('[scdblfinder] %s: %d genes x %d cells, dbr=%.4f (matched to DoubletFinder)\n',
+		sampleid, nrow(sce), ncell, dbr))
 
-out=data.frame(
-	barcode=colnames(res),
-	scdblfinder_score=as.numeric(res$scDblFinder.score),
-	scdblfinder_class=ifelse(as.character(res$scDblFinder.class)=='doublet', 'Doublet', 'Singlet'),
-	stringsAsFactors=FALSE
-	)
-utils::write.table(out, file=gzfile(outmeta), quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
+	res=scDblFinder(sce, dbr=dbr, verbose=FALSE)
 
-ndoublet=sum(out$scdblfinder_class=='Doublet')
-utils::write.table(
-	data.frame(
-		sampleid=sampleid, caller='scdblfinder', pK=NA_real_, nreaction=nreaction,
-		rate=rate, capacity=capacity, doubletratio=round(dbr, 4),
-		ncell_before=ncell, nExp=as.integer(round(dbr*ncell)), ndoublet=ndoublet,
-		ncell_after=ncell-ndoublet, homotypic_modelled=FALSE
-		),
-	file=outratio, quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE
-	)
+	out=data.frame(
+		barcode=colnames(res),
+		scdblfinder_score=as.numeric(res$scDblFinder.score),
+		scdblfinder_class=ifelse(as.character(res$scDblFinder.class)=='doublet', 'Doublet', 'Singlet'),
+		stringsAsFactors=FALSE
+		)
+	utils::write.table(out, file=gzfile(outmeta), quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE)
 
-theme_cellqc=theme_bw()+theme(
-	plot.background=element_blank(), panel.grid.minor=element_blank(),
-	panel.border=element_blank(), plot.title=element_text(hjust=0.5, size=10),
-	axis.line=element_line(color='black'), axis.text=element_text(color='black')
-	)
+	ndoublet=sum(out$scdblfinder_class=='Doublet')
+	utils::write.table(
+		data.frame(
+			sampleid=sampleid, caller='scdblfinder', pK=NA_real_, nreaction=nreaction,
+			rate=rate, capacity=capacity, doubletratio=round(dbr, 4),
+			ncell_before=ncell, nExp=as.integer(round(dbr*ncell)), ndoublet=ndoublet,
+			ncell_after=ncell-ndoublet, homotypic_modelled=FALSE
+			),
+		file=outratio, quote=FALSE, sep='\t', row.names=FALSE, col.names=TRUE
+		)
 
-pdat=data.frame(score=out$scdblfinder_score,
-	class=factor(out$scdblfinder_class, levels=c('Singlet', 'Doublet')))
-p=ggplot(pdat, aes(x=class, y=score, fill=class))+
-	geom_violin(trim=TRUE, show.legend=FALSE)+
-	geom_boxplot(width=0.1, fill='white', outlier.shape=NA)+
-	scale_fill_manual(values=c(Singlet='#4c72b0', Doublet='#c44e52'))+
-	labs(x=NULL, y='scDblFinder score',
-		title=sprintf('%s: scDblFinder score (dbr=%.3f)', sampleid, dbr))+
-	theme_cellqc
-ggsave(p, file=outpdf, width=4.5, height=4, units='in', device=cairo_pdf)
-ggsave(p, file=outpng, width=4.5, height=4, units='in', dpi=300)
+	theme_cellqc=theme_bw()+theme(
+		plot.background=element_blank(), panel.grid.minor=element_blank(),
+		panel.border=element_blank(), plot.title=element_text(hjust=0.5, size=10),
+		axis.line=element_line(color='black'), axis.text=element_text(color='black')
+		)
 
-cat(sprintf('[scdblfinder] %s: %d/%d cells called doublet (%.2f%%)\n',
-	sampleid, ndoublet, ncell, 100*ndoublet/ncell))
+	pdat=data.frame(score=out$scdblfinder_score,
+		class=factor(out$scdblfinder_class, levels=c('Singlet', 'Doublet')))
+	p=ggplot(pdat, aes(x=class, y=score, fill=class))+
+		geom_violin(trim=TRUE, show.legend=FALSE)+
+		geom_boxplot(width=0.1, fill='white', outlier.shape=NA)+
+		scale_fill_manual(values=c(Singlet='#4c72b0', Doublet='#c44e52'))+
+		labs(x=NULL, y='scDblFinder score',
+			title=sprintf('%s: scDblFinder score (dbr=%.3f)', sampleid, dbr))+
+		theme_cellqc
+	ggsave(p, file=outpdf, width=4.5, height=4, units='in', device=cairo_pdf)
+	ggsave(p, file=outpng, width=4.5, height=4, units='in', dpi=300)
+
+	cat(sprintf('[scdblfinder] %s: %d/%d cells called doublet (%.2f%%)\n',
+		sampleid, ndoublet, ncell, 100*ndoublet/ncell))
+})

@@ -4,20 +4,26 @@
 Prefixes the cell barcode with the sample ID, makes var names unique, drops the
 `raw` layer, and attaches the nuclear fraction when it was computed. The nuclear
 fraction input is absent for samples with no Cell Ranger BAM (detected at DAG
-construction), so its presence is checked rather than assumed.
+construction), so its presence is checked rather than assumed. When the
+nuclear-fraction step ran but failed, the matrix is written without it, exactly
+as for a sample with no BAM, and the status message says why.
 
-This is the last stage, so its output is `result/{sample}.h5ad` -- the matrix a
-user takes away -- alongside `.obs` and `.var` as gzipped TSVs.
+This is the last stage: its output is the matrix a user takes away, alongside
+`.obs` and `.var` as gzipped TSVs. It is written to `postproc/` and published to
+`result/{sample}.h5ad` by the `publish` rule only once the `qcstatus` checkpoint
+has seen this sample through every required step, so `result/` never holds the
+placeholder a failed or skipped step leaves behind.
 """
 
 import anndata as ad
 import pandas as pd
 import scanpy as sc
 
-from cellqc import qcutil
+from cellqc import qcstatus, qcutil
 
 infile = snakemake.input['h5ad']
 metafile = snakemake.input.get('nf', None)
+nf_status = snakemake.input.get('nf_status', None)
 sampleid = snakemake.params['sampleid']
 outfile = snakemake.output['h5ad']
 out_obs = snakemake.output['obs']
@@ -45,7 +51,7 @@ def add_metadata(indata, metadata, what):
 	return indata
 
 
-def main():
+def main(st):
 	x = sc.read_h5ad(infile)
 	n_in = x.n_obs
 
@@ -55,18 +61,24 @@ def main():
 	for obsm in x.obsm_keys():
 		result.obsm[obsm] = x.obsm[obsm]
 
-	if metafile:
-		metadata = pd.read_csv(metafile, header=0, index_col=0, sep='\t')
+	nf_file, nf_unavailable = metafile, None
+	if nf_file and not qcstatus.usable(nf_status):
+		rows = qcstatus.read_status(nf_status)
+		nf_unavailable = qcstatus.reason(rows[0]) if rows else 'nuclear_fraction recorded no status'
+		nf_file = None
+
+	if nf_file:
+		metadata = pd.read_csv(nf_file, header=0, index_col=0, sep='\t')
 		result = add_metadata(result, metadata, 'the nuclear fraction table')
 		result.uns['cellqc_nuclear_fraction'] = True
 	else:
 		# Recorded explicitly so a missing column is never mistaken downstream
 		# for a computed-and-zero one.
 		result.uns['cellqc_nuclear_fraction'] = False
-		print(
-			f'[postproc] {sampleid}: no nuclear fraction (no Cell Ranger BAM for this sample)',
-			flush=True,
-			)
+		why = nf_unavailable or 'no Cell Ranger BAM for this sample'
+		if nf_unavailable:
+			st.note(f'written without the nuclear fraction ({why})')
+		print(f'[postproc] {sampleid}: no nuclear fraction ({why})', flush=True)
 
 	result.obs.index = sampleid + '_' + result.obs.index.astype(str)
 	result.obs['sampleid'] = sampleid
@@ -79,4 +91,4 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+	qcstatus.run(snakemake, 'postproc', main, requires=snakemake.input['upstream'])

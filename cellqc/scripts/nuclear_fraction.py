@@ -28,7 +28,7 @@ import pandas as pd
 import pysam
 import scanpy as sc
 
-from cellqc import qcutil
+from cellqc import qcstatus, qcutil
 
 cellranger = snakemake.input['cellranger']
 filtered_h5 = snakemake.input['filtered']
@@ -85,7 +85,7 @@ def count_contig(args):
 	return exon, intron, exon_p, intron_p, n_reads, n_tagged
 
 
-def main():
+def main(st):
 	barcodes = cell_barcodes()
 	bc_index = {bc: i for i, bc in enumerate(barcodes)}
 	print(f'[nuclear_fraction] {sampleid}: {len(barcodes)} called-cell barcodes', flush=True)
@@ -256,4 +256,4 @@ def plot(barcodes, nf):
 
 
 if __name__ == '__main__':
-	main()
+	qcstatus.run(snakemake, 'nuclear_fraction', main)
